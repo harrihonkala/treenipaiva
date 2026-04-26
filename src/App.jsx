@@ -183,7 +183,7 @@ const EXERCISES = [
 const MOBILITY = ["Lonkan avaus","Rintarangan kierto","Hartiat","Takareidet","Pohjelihas","Selkä","Niska"];
 const DAYS = ["Ma","Ti","Ke","To","Pe","La","Su"];
 const MONTHS = ["Tammikuu","Helmikuu","Maaliskuu","Huhtikuu","Toukokuu","Kesäkuu","Heinäkuu","Elokuu","Syyskuu","Lokakuu","Marraskuu","Joulukuu"];
-const trained = [3,5,7,10,12,14,17,19,21,22,24];
+const trained = [];
 
 function LineChart({ data, color }) {
   const w = 300, h = 80;
@@ -208,7 +208,7 @@ function LineChart({ data, color }) {
 
 
 function HomeTab({ onStart }) {
-  const week = [true,true,false,true,false,false,false];
+  const week = [false,false,false,false,false,false,false];
   return (
     <div>
       <div className="streak-wrap">
@@ -227,20 +227,15 @@ function HomeTab({ onStart }) {
       </div>
       <button className="cta" onClick={onStart}>+ Aloita treeni</button>
       <div className="sec">Viimeisin treeni</div>
-      <div className="card">
-        <div className="lw-type">🏋️ Kuntosali · Tänään</div>
-        <div className="lw-name">Yläkroppa</div>
-        <div className="lw-ex">Penkkipunnerrus · Soutu · Olkapääpunnerrus</div>
-        <div className="stats-row">
-          <div className="stat-box"><div className="stat-v">6</div><div className="stat-l">liikettä</div></div>
-          <div className="stat-box"><div className="stat-v">18</div><div className="stat-l">sarjaa</div></div>
-          <div className="stat-box"><div className="stat-v">52</div><div className="stat-l">min</div></div>
-        </div>
+      <div className="card" style={{textAlign:"center",padding:"28px 16px"}}>
+        <div style={{fontSize:32,marginBottom:10}}>🏋️</div>
+        <div style={{fontSize:13,color:C.textSub}}>Ei vielä treenejä.</div>
+        <div style={{fontSize:12,color:C.textMuted,marginTop:4}}>Aloita ensimmäinen treeni!</div>
       </div>
       <div className="sec">Tällä viikolla</div>
       <div className="two-col">
-        <div className="big-stat"><div className="bs-val">3</div><div className="bs-lbl">treeniä</div></div>
-        <div className="big-stat"><div className="bs-val">156</div><div className="bs-lbl">min yhteensä</div></div>
+        <div className="big-stat"><div className="bs-val">0</div><div className="bs-lbl">treeniä</div></div>
+        <div className="big-stat"><div className="bs-val">0</div><div className="bs-lbl">min yhteensä</div></div>
       </div>
     </div>
   );
@@ -343,52 +338,45 @@ function WorkoutTab() {
 
 function StatsTab() {
   const [ex, setEx] = useState("Penkkipunnerrus");
-  const mos = ["T","H","M","H","T","K","H","E","S","L","M","J"];
-  const bench=[60,65,67.5,70,70,72.5,75,77.5,80,82.5,85,87.5];
-  const squat=[80,85,90,90,95,100,102.5,105,107.5,110,112.5,115];
-  const runD=[6.8,6.5,6.3,6.4,6.1,6.0,5.9,5.8,5.7,5.6,5.5,5.4];
-  const bikeD=[24.2,24.8,25.0,24.6,25.4,26.0,26.2,26.8,27.0,27.4,27.8,28.4];
-  const data = ex==="Kyykky"?squat:bench;
   return (
     <div>
       <div className="two-col">
-        <div className="big-stat"><div className="bs-val">47</div><div className="bs-lbl">treeniä yhteensä</div></div>
-        <div className="big-stat"><div className="bs-val">87.5</div><div className="bs-lbl">kg bench PR</div></div>
+        <div className="big-stat"><div className="bs-val">0</div><div className="bs-lbl">treeniä yhteensä</div></div>
+        <div className="big-stat"><div className="bs-val">—</div><div className="bs-lbl">paras PR</div></div>
       </div>
       <div className="sec">Liikekohtainen kehitys</div>
       <select className="ex-sel" value={ex} onChange={e=>setEx(e.target.value)}>{EXERCISES.map(e=><option key={e.name}>{e.name}</option>)}</select>
-      <div className="chart-wrap">
-        <div className="chart-hdr"><div><div className="chart-title">{ex}</div><div className="chart-sub">Paras paino per treeni (kg)</div></div><div className="chart-pr">PR {Math.max(...data)} kg</div></div>
-        <LineChart data={data} color={C.cyan}/>
-        <div className="tag-row"><div className="tag c">↑ +{(data[data.length-1]-data[0]).toFixed(1)} kg / 12 kk</div><div className="tag">🏆 PR: {Math.max(...data)} kg</div></div>
+      <div className="chart-wrap" style={{textAlign:"center",padding:"28px 16px"}}>
+        <div style={{fontSize:28,marginBottom:10}}>📈</div>
+        <div style={{fontSize:13,color:C.textSub}}>Ei vielä dataa.</div>
+        <div style={{fontSize:12,color:C.textMuted,marginTop:4}}>Kirjaa ensimmäinen treeni niin kehitys näkyy täällä.</div>
       </div>
       <div className="sec">Juoksukehitys</div>
-      <div className="chart-wrap">
-        <div className="chart-hdr"><div><div className="chart-title">Juoksuvauhti</div><div className="chart-sub">min / km</div></div><div className="chart-pr">PR 5:24</div></div>
-        <LineChart data={runD} color={C.cyan}/>
-        <div className="tag-row"><div className="tag c">↓ -1.4 min/km / 12 kk</div><div className="tag">🏆 PR: 5:24 min/km</div></div>
+      <div className="chart-wrap" style={{textAlign:"center",padding:"28px 16px"}}>
+        <div style={{fontSize:28,marginBottom:10}}>🏃</div>
+        <div style={{fontSize:13,color:C.textSub}}>Ei vielä lenkkejä.</div>
       </div>
       <div className="sec">Pyöräkehitys</div>
-      <div className="chart-wrap">
-        <div className="chart-hdr"><div><div className="chart-title">Keskinopeus</div><div className="chart-sub">km / h</div></div><div className="chart-pr">PR 28.4 km/h</div></div>
-        <LineChart data={bikeD} color={C.cyan}/>
-        <div className="tag-row"><div className="tag c">↑ +4.2 km/h / 12 kk</div><div className="tag">🏆 PR: 28.4 km/h</div></div>
+      <div className="chart-wrap" style={{textAlign:"center",padding:"28px 16px"}}>
+        <div style={{fontSize:28,marginBottom:10}}>🚴</div>
+        <div style={{fontSize:13,color:C.textSub}}>Ei vielä pyörälenkkejä.</div>
       </div>
     </div>
   );
 }
 
 function CalTab() {
-  const [mo, setMo] = useState(3);
+  const [mo, setMo] = useState(new Date().getMonth());
+  const yr = new Date().getFullYear();
   const days=[31,28,31,30,31,30,31,31,30,31,30,31][mo];
-  const offset=(()=>{const d=new Date(2026,mo,1).getDay();return d===0?6:d-1;})();
-  const today=mo===3?25:null;
+  const offset=(()=>{const d=new Date(yr,mo,1).getDay();return d===0?6:d-1;})();
+  const today=new Date().getMonth()===mo?new Date().getDate():null;
   return (
     <div>
       <div className="cal-wrap">
         <div className="cal-hdr">
           <button className="cal-nav" onClick={()=>setMo(m=>Math.max(0,m-1))}>‹</button>
-          <div className="cal-month">{MONTHS[mo]} 2026</div>
+          <div className="cal-month">{MONTHS[mo]} {yr}</div>
           <button className="cal-nav" onClick={()=>setMo(m=>Math.min(11,m+1))}>›</button>
         </div>
         <div className="cal-grid">
@@ -396,46 +384,42 @@ function CalTab() {
           {Array(offset).fill(null).map((_,i)=><div key={`e${i}`} className="cal-d empty"/>)}
           {Array(days).fill(null).map((_,i)=>{
             const d=i+1;
-            const isTrained=trained.includes(d);
             const isToday=d===today;
-            return <div key={d} className={`cal-d ${isToday?"today":isTrained?"trained":"norm"}`}>{isTrained&&!isToday?"▪":d}</div>;
+            return <div key={d} className={`cal-d ${isToday?"today":"norm"}`}>{d}</div>;
           })}
         </div>
       </div>
       <div className="two-col">
-        <div className="big-stat"><div className="bs-val">8</div><div className="bs-lbl">treeniä / kk</div></div>
-        <div className="big-stat"><div className="bs-val">3</div><div className="bs-lbl">lepopäivää max</div></div>
+        <div className="big-stat"><div className="bs-val">0</div><div className="bs-lbl">treeniä / kk</div></div>
+        <div className="big-stat"><div className="bs-val">—</div><div className="bs-lbl">putki max</div></div>
       </div>
     </div>
   );
 }
 
 function ProfileTab() {
-  const [w,setW]=useState("84.5"); const [m,setM]=useState("42.1"); const [f,setF]=useState("16.2");
-  const goals=[{name:"Penkkipunnerrus 100 kg",current:87.5,target:100,pct:87},{name:"Juoksu 5 km alle 25 min",current:27.0,target:25,pct:72},{name:"Paino 82 kg",current:84.5,target:82,pct:60}];
-  const weightData=[89,88,87,86.5,86,85.5,85,85,84.5,84.5,84.5,84.5];
+  const [w,setW]=useState(""); const [m,setM]=useState(""); const [f,setF]=useState("");
   return (
     <div>
-      <div className="prof-hdr"><div className="avatar">💪</div><div><div className="prof-name">Omatreeni</div><div className="prof-since">Aloitettu tammikuu 2026</div></div></div>
-      <div className="sec">Kehon mittaukset</div>
+      <div className="prof-hdr"><div className="avatar">💪</div><div><div className="prof-name">Omatreeni</div><div className="prof-since">Aloitettu {MONTHS[new Date().getMonth()]} {new Date().getFullYear()}</div></div></div>
+      <div className="sec">Kehon mittaukset — tänään</div>
       <div className="body-grid">
         {[["Paino",w,setW,"kg"],["Lihas",m,setM,"%"],["Rasva",f,setF,"%"]].map(([lbl,val,set,unit])=>(
-          <div key={lbl} className="body-box"><div className="body-lbl">{lbl}</div><input className="body-inp" value={val} onChange={e=>set(e.target.value)}/><div className="body-unit">{unit}</div></div>
+          <div key={lbl} className="body-box"><div className="body-lbl">{lbl}</div><input className="body-inp" placeholder="—" value={val} onChange={e=>set(e.target.value)}/><div className="body-unit">{unit}</div></div>
         ))}
       </div>
       <div className="sec">Painon kehitys</div>
-      <div className="chart-wrap">
-        <div className="chart-hdr"><div><div className="chart-title">Paino</div><div className="chart-sub">viimeiset 12 kk (kg)</div></div><div className="chart-pr">-4.5 kg</div></div>
-        <LineChart data={weightData} color={C.cyan}/>
+      <div className="chart-wrap" style={{textAlign:"center",padding:"28px 16px"}}>
+        <div style={{fontSize:28,marginBottom:10}}>⚖️</div>
+        <div style={{fontSize:13,color:C.textSub}}>Ei vielä mittauksia.</div>
+        <div style={{fontSize:12,color:C.textMuted,marginTop:4}}>Kirjaa paino ylös niin kehitys näkyy täällä.</div>
       </div>
       <div className="sec">Tavoitteet</div>
-      {goals.map((g,i)=>(
-        <div key={i} className="goal-card">
-          <div className="goal-row"><div className="goal-name">{g.name}</div><div className="goal-pct">{g.pct}%</div></div>
-          <div className="prog-bar"><div className="prog-fill" style={{width:`${g.pct}%`}}/></div>
-          <div className="goal-sub">{g.current} → {g.target}</div>
-        </div>
-      ))}
+      <div className="card" style={{textAlign:"center",padding:"28px 16px"}}>
+        <div style={{fontSize:28,marginBottom:10}}>🎯</div>
+        <div style={{fontSize:13,color:C.textSub}}>Ei vielä tavoitteita.</div>
+        <div style={{fontSize:12,color:C.textMuted,marginTop:4}}>Tavoitteiden asetus tulossa pian!</div>
+      </div>
     </div>
   );
 }
@@ -527,7 +511,7 @@ export default function App() {
       <div className="app">
         <div className="hdr">
           <div className="hdr-title">{TITLES[tab]}</div>
-          <div className="hdr-date">La 25. huhtikuuta 2026</div>
+          <div className="hdr-date">{new Date().toLocaleDateString("fi-FI",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
         </div>
         <div className="content">
           {tab==="home"&&<HomeTab onStart={()=>setTab("workout")}/>}
