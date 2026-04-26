@@ -197,6 +197,10 @@ body{background:${C.bg};color:${C.text};font-family:'Syne',sans-serif;overscroll
 .lock-toggle{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:${C.textMuted};cursor:pointer;font-size:18px;padding:4px;}
 .lock-btn{width:100%;max-width:280px;background:${C.cyan};color:#000;border:none;border-radius:12px;padding:16px;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-bottom:16px;}
 .lock-err{font-size:12px;color:${C.red};min-height:18px;text-align:center;margin-bottom:8px;}
+.edit-row{display:grid;grid-template-columns:26px 1fr 1fr 60px 44px 28px;gap:6px;align-items:center;margin-bottom:5px;}
+.del-set{background:none;border:none;color:${C.textMuted};cursor:pointer;font-size:16px;padding:0 2px;line-height:1;}
+.del-set:active{color:${C.red};}
+.danger-btn{width:100%;background:rgba(255,68,85,0.1);color:${C.red};border:1px solid ${C.red};border-radius:12px;padding:14px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-top:8px;letter-spacing:1px;}
 `;
 
 const uid=()=>Math.random().toString(36).slice(2,10);
@@ -364,6 +368,23 @@ function WorkoutTab({workouts,exercises,routines,onSave}){
     <div>
       <div style={{marginBottom:22}}><div style={{fontSize:22,fontWeight:800}}>Uusi treeni</div><div style={{fontSize:12,color:C.textSub,marginTop:4}}>Valitse treenityyppi</div></div>
       <div className="type-grid">{TYPES.map(t=><div key={t.id} className={`type-card${type===t.id?" sel":""}`} onClick={()=>setType(t.id)}><span className="type-emoji">{t.emoji}</span><div className="type-name">{t.name}</div><div className="type-sub">{t.sub}</div></div>)}</div>
+      {(type==="gym"||type==="home")&&routines.length>0&&<>
+        <div className="sec">Valitse ohjelma (valinnainen)</div>
+        {routines.map(r=>(
+          <div key={r.id} className="routine-card" style={{border:`2px solid ${wName===r.name?C.cyan:C.border}`,background:wName===r.name?C.cyanDim:C.card}} onClick={()=>{
+            if(wName===r.name){setWName("");setExs([]);}
+            else{
+              const names=r.exercises.map(eid=>exercises.find(e=>e.id===eid)?.name).filter(Boolean);
+              setExs(names.map(n=>({id:uid(),name:n,sets:[{kg:"",reps:"",rpe:"",fail:false}]})));
+              setWName(r.name);
+            }
+          }}>
+            <div className="routine-name" style={{color:wName===r.name?C.cyan:C.text}}>{wName===r.name?"✓ ":""}{r.name}</div>
+            <div className="routine-exs">{r.exercises.map(eid=>exercises.find(e=>e.id===eid)?.name).filter(Boolean).join(" · ")}</div>
+          </div>
+        ))}
+        <div style={{fontSize:11,color:C.textMuted,marginBottom:8,marginTop:4}}>Tai aloita tyhjältä pohjalta →</div>
+      </>}
       {type&&<button className="cta" onClick={()=>setPhase("log")}>Aloita →</button>}
     </div>
   );
@@ -534,12 +555,70 @@ function CalTab({workouts}){
   );
 }
 
-function HistoryTab({workouts,bodyLogs}){
+function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteBody}){
   const [tab,setTab]=useState("workouts");
   const gymW=workouts.filter(w=>w.type==="gym"||w.type==="home");
   const allExNames=[...new Set(gymW.flatMap(w=>w.exercises?.map(e=>e.name)||[]))];
   const [selEx,setSelEx]=useState("");
   const exName=selEx||allExNames[0]||"";
+  const [editing,setEditing]=useState(null); // workout being edited
+  const [editData,setEditData]=useState(null);
+
+  const startEdit=w=>{setEditing(w.id);setEditData(JSON.parse(JSON.stringify(w)));};
+  const cancelEdit=()=>{setEditing(null);setEditData(null);};
+  const saveEdit=()=>{onUpdateWorkout(editData);setEditing(null);setEditData(null);};
+
+  const updEditSet=(ei,si,f,v)=>setEditData(d=>({...d,exercises:d.exercises.map((ex,i)=>i===ei?{...ex,sets:ex.sets.map((s,j)=>j===si?{...s,[f]:v}:s)}:ex)}));
+  const delEditSet=(ei,si)=>setEditData(d=>({...d,exercises:d.exercises.map((ex,i)=>i===ei?{...ex,sets:ex.sets.filter((_,j)=>j!==si)}:ex)}));
+  const addEditSet=ei=>setEditData(d=>({...d,exercises:d.exercises.map((ex,i)=>i===ei?{...ex,sets:[...ex.sets,{kg:"",reps:"",rpe:"",fail:false}]}:ex)}));
+  const delEditEx=ei=>setEditData(d=>({...d,exercises:d.exercises.filter((_,i)=>i!==ei)}));
+
+  // Edit modal
+  if(editing&&editData)return(
+    <div>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+        <button onClick={cancelEdit} style={{background:"none",border:"none",color:C.textSub,fontSize:22,cursor:"pointer",padding:"0 4px"}}>←</button>
+        <div style={{fontSize:16,fontWeight:800}}>Muokkaa treeniä</div>
+      </div>
+      <input className="text-inp" style={{width:"100%",marginBottom:10}} value={editData.name||""} onChange={e=>setEditData(d=>({...d,name:e.target.value}))} placeholder="Treenin nimi"/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+        <div><div style={{fontSize:10,color:C.textMuted,marginBottom:4}}>KESTO (min)</div>
+          <input className="inp" type="number" value={Math.round((editData.duration||0)/60)} onChange={e=>setEditData(d=>({...d,duration:parseInt(e.target.value||0)*60}))}/>
+        </div>
+        <div><div style={{fontSize:10,color:C.textMuted,marginBottom:4}}>PÄIVÄMÄÄRÄ</div>
+          <input className="inp" type="date" value={editData.date?editData.date.slice(0,10):""} onChange={e=>setEditData(d=>({...d,date:new Date(e.target.value).toISOString()}))} style={{fontSize:12}}/>
+        </div>
+      </div>
+      {(editData.type==="run"||editData.type==="bike")&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+        <div><div style={{fontSize:10,color:C.textMuted,marginBottom:4}}>MATKA (km)</div><input className="inp" type="number" value={editData.km||""} onChange={e=>setEditData(d=>({...d,km:e.target.value}))}/></div>
+        <div><div style={{fontSize:10,color:C.textMuted,marginBottom:4}}>AIKA (min)</div><input className="inp" type="number" value={editData.mins||""} onChange={e=>setEditData(d=>({...d,mins:e.target.value}))}/></div>
+      </div>}
+      {editData.exercises&&editData.exercises.map((ex,ei)=>(
+        <div key={ei} className="ex-card">
+          <div className="ex-hdr"><div className="ex-name">{ex.name}</div><button className="ex-del" onClick={()=>delEditEx(ei)}>✕</button></div>
+          <div className="set-labels" style={{gridTemplateColumns:"26px 1fr 1fr 60px 44px 28px"}}>
+            <div className="sl">#</div><div className="sl">kg</div><div className="sl">toistot</div><div className="sl">RPE</div><div className="sl">Fail</div><div className="sl"/>
+          </div>
+          {ex.sets.map((s,si)=>(
+            <div key={si} className="edit-row">
+              <div className="set-n">{si+1}</div>
+              <input className="inp" type="number" value={s.kg} onChange={e=>updEditSet(ei,si,"kg",e.target.value)}/>
+              <input className="inp" type="number" value={s.reps} onChange={e=>updEditSet(ei,si,"reps",e.target.value)}/>
+              <select className="rpe-sel" value={s.rpe} onChange={e=>updEditSet(ei,si,"rpe",e.target.value)}><option value="">—</option>{[6,7,7.5,8,8.5,9,9.5,10].map(r=><option key={r}>{r}</option>)}</select>
+              <button className={`fail-btn${s.fail?" on":""}`} onClick={()=>updEditSet(ei,si,"fail",!s.fail)}>{s.fail?"✓":"FAIL"}</button>
+              <button className="del-set" onClick={()=>delEditSet(ei,si)}>✕</button>
+            </div>
+          ))}
+          <button className="add-set" onClick={()=>addEditSet(ei)}>+ Lisää sarja</button>
+        </div>
+      ))}
+      <div style={{fontSize:10,color:C.textMuted,marginBottom:4,marginTop:8}}>MUISTIINPANOT</div>
+      <textarea className="notes" rows={2} value={editData.notes||""} onChange={e=>setEditData(d=>({...d,notes:e.target.value}))}/>
+      <button className="save-btn" onClick={saveEdit}>Tallenna muutokset</button>
+      <button className="danger-btn" onClick={()=>{if(window.confirm("Poistetaanko tämä treeni?")){onDeleteWorkout(editData.id);setEditing(null);setEditData(null);}}}>🗑️ Poista treeni</button>
+    </div>
+  );
+
   return(
     <div>
       <div className="hist-tabs">
@@ -550,8 +629,14 @@ function HistoryTab({workouts,bodyLogs}){
       {tab==="workouts"&&(workouts.length===0?(
         <div className="empty-state"><div className="empty-icon">📋</div><div className="empty-txt">Ei vielä treenejä.</div></div>
       ):workouts.map(w=>(
-        <div key={w.id} className="hist-row">
-          <div className="hist-row-top"><div className="hist-row-name">{typeEmoji(w.type)} {w.name||typeName(w.type)}</div><div className="hist-row-date">{fmtDate(w.date)}</div></div>
+        <div key={w.id} className="hist-row" style={{cursor:"pointer"}} onClick={()=>startEdit(w)}>
+          <div className="hist-row-top">
+            <div className="hist-row-name">{typeEmoji(w.type)} {w.name||typeName(w.type)}</div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div className="hist-row-date">{fmtDate(w.date)}</div>
+              <span style={{fontSize:12,color:C.textMuted}}>✏️</span>
+            </div>
+          </div>
           <div className="hist-row-sub">{w.exercises&&`${w.exercises.length} liikettä · ${w.exercises.reduce((a,e)=>a+e.sets.length,0)} sarjaa`}{(w.type==="run"||w.type==="bike")&&w.km&&`${w.km} km · ${w.mins} min`}{w.duration?` · ${fmtTime(w.duration)}`:""}</div>
           {w.exercises&&<div style={{marginTop:6}}>{w.exercises.map(e=><span key={e.name} className="hist-badge">{e.name}</span>)}</div>}
           {w.notes&&<div style={{fontSize:11,color:C.textMuted,marginTop:6,fontStyle:"italic"}}>"{w.notes}"</div>}
@@ -583,7 +668,13 @@ function HistoryTab({workouts,bodyLogs}){
         <div className="empty-state"><div className="empty-icon">⚖️</div><div className="empty-txt">Ei vielä mittauksia.</div><div className="empty-sub">Lisää mittaukset Profiili-välilehdellä.</div></div>
       ):[...bodyLogs].reverse().map((l,i)=>(
         <div key={i} className="hist-row">
-          <div className="hist-row-top"><div className="hist-row-name">Kehon mittaus</div><div className="hist-row-date">{fmtDate(l.date)}</div></div>
+          <div className="hist-row-top">
+            <div className="hist-row-name">Kehon mittaus</div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div className="hist-row-date">{fmtDate(l.date)}</div>
+              <button className="icon-btn" style={{fontSize:14,padding:"0 2px"}} onClick={()=>{if(window.confirm("Poistetaanko tämä mittaus?"))onDeleteBody(bodyLogs.length-1-i);}}>🗑️</button>
+            </div>
+          </div>
           <div style={{display:"flex",gap:16,marginTop:8}}>
             {l.weight&&<div><div style={{fontSize:18,fontWeight:700,fontFamily:"'JetBrains Mono',monospace",color:C.cyan}}>{l.weight}</div><div style={{fontSize:10,color:C.textMuted}}>kg</div></div>}
             {l.fat&&<div><div style={{fontSize:18,fontWeight:700,fontFamily:"'JetBrains Mono',monospace",color:C.cyan}}>{l.fat}</div><div style={{fontSize:10,color:C.textMuted}}>rasva%</div></div>}
@@ -692,6 +783,9 @@ export default function App(){
 
   const addWorkout=w=>setWorkouts(ws=>[w,...ws]);
   const addBodyLog=l=>setBodyLogs(ls=>[...ls,l]);
+  const updateWorkout=w=>setWorkouts(ws=>ws.map(x=>x.id===w.id?w:x));
+  const deleteWorkout=id=>setWorkouts(ws=>ws.filter(x=>x.id!==id));
+  const deleteBody=idx=>setBodyLogs(ls=>ls.filter((_,i)=>i!==ls.length-1-idx));
 
   if(!unlocked)return(<><style>{FONTS+css}</style><LockScreen onUnlock={()=>setUnlocked(true)}/></>);
 
@@ -707,7 +801,7 @@ export default function App(){
           {tab==="home"&&<HomeTab workouts={workouts} onStart={()=>setTab("workout")}/>}
           {tab==="workout"&&<WorkoutTab workouts={workouts} exercises={exercises} routines={routines} onSave={addWorkout}/>}
           {tab==="stats"&&<StatsTab workouts={workouts} bodyLogs={bodyLogs}/>}
-          {tab==="history"&&<HistoryTab workouts={workouts} bodyLogs={bodyLogs}/>}
+          {tab==="history"&&<HistoryTab workouts={workouts} bodyLogs={bodyLogs} onUpdateWorkout={updateWorkout} onDeleteWorkout={deleteWorkout} onDeleteBody={deleteBody}/>}
           {tab==="profile"&&<ProfileTab bodyLogs={bodyLogs} onSaveBody={addBodyLog} exercises={exercises} setExercises={e=>{setExercises(e);}} routines={routines} setRoutines={r=>{setRoutines(r);}}/>}
         </div>
         <div className="tabbar">
