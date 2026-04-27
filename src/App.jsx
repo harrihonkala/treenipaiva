@@ -561,25 +561,90 @@ function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteB
   const allExNames=[...new Set(gymW.flatMap(w=>w.exercises?.map(e=>e.name)||[]))];
   const [selEx,setSelEx]=useState("");
   const exName=selEx||allExNames[0]||"";
-  const [editing,setEditing]=useState(null); // workout being edited
+
+  // 3 phases: "list" | "view" | "edit"
+  const [phase,setPhase]=useState("list");
+  const [viewing,setViewing]=useState(null);
   const [editData,setEditData]=useState(null);
 
-  const startEdit=w=>{setEditing(w.id);setEditData(JSON.parse(JSON.stringify(w)));};
-  const cancelEdit=()=>{setEditing(null);setEditData(null);};
-  const saveEdit=()=>{onUpdateWorkout(editData);setEditing(null);setEditData(null);};
+  const openView=w=>{setViewing(w);setPhase("view");};
+  const openEdit=()=>{setEditData(JSON.parse(JSON.stringify(viewing)));setPhase("edit");};
+  const cancelEdit=()=>{setEditData(null);setPhase("view");};
+  const saveEdit=()=>{onUpdateWorkout(editData);setViewing(editData);setEditData(null);setPhase("view");};
+  const doDelete=()=>{if(window.confirm("Poistetaanko tämä treeni?")){onDeleteWorkout(viewing.id);setViewing(null);setPhase("list");}};
+  const goBack=()=>{if(phase==="edit"){cancelEdit();}else{setViewing(null);setPhase("list");}};
 
   const updEditSet=(ei,si,f,v)=>setEditData(d=>({...d,exercises:d.exercises.map((ex,i)=>i===ei?{...ex,sets:ex.sets.map((s,j)=>j===si?{...s,[f]:v}:s)}:ex)}));
   const delEditSet=(ei,si)=>setEditData(d=>({...d,exercises:d.exercises.map((ex,i)=>i===ei?{...ex,sets:ex.sets.filter((_,j)=>j!==si)}:ex)}));
   const addEditSet=ei=>setEditData(d=>({...d,exercises:d.exercises.map((ex,i)=>i===ei?{...ex,sets:[...ex.sets,{kg:"",reps:"",rpe:"",fail:false}]}:ex)}));
   const delEditEx=ei=>setEditData(d=>({...d,exercises:d.exercises.filter((_,i)=>i!==ei)}));
 
-  // Edit modal
-  if(editing&&editData)return(
-    <div>
-      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
-        <button onClick={cancelEdit} style={{background:"none",border:"none",color:C.textSub,fontSize:22,cursor:"pointer",padding:"0 4px"}}>←</button>
-        <div style={{fontSize:16,fontWeight:800}}>Muokkaa treeniä</div>
+  // Shared back button header
+  const BackHeader=({title,right})=>(
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <button onClick={goBack} style={{background:"none",border:"none",color:C.textSub,fontSize:22,cursor:"pointer",padding:"0 4px",lineHeight:1}}>←</button>
+        <div style={{fontSize:16,fontWeight:800}}>{title}</div>
       </div>
+      {right}
+    </div>
+  );
+
+  // ── VIEW phase ──────────────────────────────────────────────
+  if(phase==="view"&&viewing)return(
+    <div>
+      <BackHeader title={viewing.name||typeName(viewing.type)} right={
+        <button onClick={openEdit} style={{background:C.cyanDim,border:`1px solid ${C.cyanMid}`,borderRadius:10,padding:"8px 16px",color:C.cyan,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Syne',sans-serif",letterSpacing:"0.5px"}}>✏️ Muokkaa</button>
+      }/>
+      <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+        <div className="lw-type">{typeEmoji(viewing.type)} {typeName(viewing.type)}</div>
+        <div className="lw-type" style={{background:"none",borderColor:C.border,color:C.textSub}}>{fmtDate(viewing.date)}</div>
+        {viewing.duration&&<div className="lw-type" style={{background:"none",borderColor:C.border,color:C.textSub}}>⏱ {fmtTime(viewing.duration)}</div>}
+      </div>
+      {(viewing.type==="run"||viewing.type==="bike")&&viewing.km&&(
+        <div className="two-col">
+          <div className="big-stat"><div className="bs-val">{viewing.km}</div><div className="bs-lbl">km</div></div>
+          <div className="big-stat">
+            <div className="bs-val">{viewing.type==="run"?(()=>{const p=parseFloat(viewing.mins)/parseFloat(viewing.km);const m=Math.floor(p),s=Math.round((p-m)*60);return`${m}:${String(s).padStart(2,"0")}`;})():(parseFloat(viewing.km)/parseFloat(viewing.mins)*60).toFixed(1)}</div>
+            <div className="bs-lbl">{viewing.type==="run"?"min/km":"km/h"}</div>
+          </div>
+        </div>
+      )}
+      {viewing.exercises&&<>
+        <div className="stats-row" style={{marginBottom:16}}>
+          <div className="stat-box"><div className="stat-v">{viewing.exercises.length}</div><div className="stat-l">liikettä</div></div>
+          <div className="stat-box"><div className="stat-v">{viewing.exercises.reduce((a,e)=>a+e.sets.length,0)}</div><div className="stat-l">sarjaa</div></div>
+          <div className="stat-box"><div className="stat-v">{viewing.exercises.reduce((a,e)=>a+e.sets.reduce((b,s)=>b+(parseFloat(s.kg)||0)*(parseInt(s.reps)||0),0),0).toFixed(0)}</div><div className="stat-l">kg volyymi</div></div>
+        </div>
+        {viewing.exercises.map((ex,ei)=>(
+          <div key={ei} className="ex-card">
+            <div className="ex-hdr"><div className="ex-name">{ex.name}</div></div>
+            <div className="set-labels"><div className="sl">#</div><div className="sl">kg</div><div className="sl">toistot</div><div className="sl">RPE</div><div className="sl">Fail</div></div>
+            {ex.sets.map((s,si)=>(
+              <div key={si} className="set-row">
+                <div className="set-n">{si+1}</div>
+                <div className="inp" style={{background:"none",border:"none",color:C.text,fontSize:14,textAlign:"center",padding:"8px 6px"}}>{s.kg||"—"}</div>
+                <div className="inp" style={{background:"none",border:"none",color:C.text,fontSize:14,textAlign:"center",padding:"8px 6px"}}>{s.reps||"—"}</div>
+                <div className="rpe-sel" style={{background:"none",border:"none",color:s.rpe?C.textSub:C.textMuted,fontSize:12,textAlign:"center",padding:"8px 4px"}}>{s.rpe||"—"}</div>
+                <div className={`fail-btn${s.fail?" on":""}`} style={{cursor:"default"}}>{s.fail?"✓ FAIL":"—"}</div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </>}
+      {viewing.mobility&&viewing.mobility.length>0&&<>
+        <div className="sec">Venyttelyt</div>
+        {viewing.mobility.map((m,i)=><div key={i} className="mob-row"><div className="mob-name">{m.name}</div><div style={{fontSize:13,color:C.cyan,fontFamily:"'JetBrains Mono',monospace"}}>{m.secs} sek</div></div>)}
+      </>}
+      {viewing.notes&&<><div className="sec">Muistiinpanot</div><div className="card" style={{fontSize:13,color:C.textSub,fontStyle:"italic"}}>"{viewing.notes}"</div></>}
+      <button className="danger-btn" style={{marginTop:8}} onClick={doDelete}>🗑️ Poista treeni</button>
+    </div>
+  );
+
+  // ── EDIT phase ──────────────────────────────────────────────
+  if(phase==="edit"&&editData)return(
+    <div>
+      <BackHeader title="Muokkaa treeniä"/>
       <input className="text-inp" style={{width:"100%",marginBottom:10}} value={editData.name||""} onChange={e=>setEditData(d=>({...d,name:e.target.value}))} placeholder="Treenin nimi"/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
         <div><div style={{fontSize:10,color:C.textMuted,marginBottom:4}}>KESTO (min)</div>
@@ -615,10 +680,10 @@ function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteB
       <div style={{fontSize:10,color:C.textMuted,marginBottom:4,marginTop:8}}>MUISTIINPANOT</div>
       <textarea className="notes" rows={2} value={editData.notes||""} onChange={e=>setEditData(d=>({...d,notes:e.target.value}))}/>
       <button className="save-btn" onClick={saveEdit}>Tallenna muutokset</button>
-      <button className="danger-btn" onClick={()=>{if(window.confirm("Poistetaanko tämä treeni?")){onDeleteWorkout(editData.id);setEditing(null);setEditData(null);}}}>🗑️ Poista treeni</button>
     </div>
   );
 
+  // ── LIST phase ──────────────────────────────────────────────
   return(
     <div>
       <div className="hist-tabs">
@@ -629,12 +694,12 @@ function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteB
       {tab==="workouts"&&(workouts.length===0?(
         <div className="empty-state"><div className="empty-icon">📋</div><div className="empty-txt">Ei vielä treenejä.</div></div>
       ):workouts.map(w=>(
-        <div key={w.id} className="hist-row" style={{cursor:"pointer"}} onClick={()=>startEdit(w)}>
+        <div key={w.id} className="hist-row" style={{cursor:"pointer"}} onClick={()=>openView(w)}>
           <div className="hist-row-top">
             <div className="hist-row-name">{typeEmoji(w.type)} {w.name||typeName(w.type)}</div>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
               <div className="hist-row-date">{fmtDate(w.date)}</div>
-              <span style={{fontSize:12,color:C.textMuted}}>✏️</span>
+              <span style={{fontSize:11,color:C.textMuted}}>›</span>
             </div>
           </div>
           <div className="hist-row-sub">{w.exercises&&`${w.exercises.length} liikettä · ${w.exercises.reduce((a,e)=>a+e.sets.length,0)} sarjaa`}{(w.type==="run"||w.type==="bike")&&w.km&&`${w.km} km · ${w.mins} min`}{w.duration?` · ${fmtTime(w.duration)}`:""}</div>
@@ -672,7 +737,7 @@ function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteB
             <div className="hist-row-name">Kehon mittaus</div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <div className="hist-row-date">{fmtDate(l.date)}</div>
-              <button className="icon-btn" style={{fontSize:14,padding:"0 2px"}} onClick={()=>{if(window.confirm("Poistetaanko tämä mittaus?"))onDeleteBody(bodyLogs.length-1-i);}}>🗑️</button>
+              <button className="icon-btn" style={{fontSize:14,padding:"0 2px"}} onClick={e=>{e.stopPropagation();if(window.confirm("Poistetaanko tämä mittaus?"))onDeleteBody(bodyLogs.length-1-i);}}>🗑️</button>
             </div>
           </div>
           <div style={{display:"flex",gap:16,marginTop:8}}>
@@ -686,12 +751,14 @@ function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteB
   );
 }
 
-function ProfileTab({bodyLogs,onSaveBody,exercises,setExercises,routines,setRoutines}){
+function ProfileTab({bodyLogs,onSaveBody,exercises,setExercises,routines,setRoutines,workouts,onImport}){
   const [w,setW]=useState("");const [m,setM]=useState("");const [f,setF]=useState("");
   const [view,setView]=useState("profile");
   const [newEx,setNewEx]=useState("");const [newExCat,setNewExCat]=useState("Muu");
   const [newRname,setNewRname]=useState("");const [newRexs,setNewRexs]=useState([]);
+  const [importMsg,setImportMsg]=useState("");
   const CATS=["Rinta","Selkä","Jalat","Hartiat","Hauis","Ojentaja","Vatsa","Muu"];
+
   const saveBody=()=>{
     if(!w&&!m&&!f)return;
     onSaveBody({date:new Date().toISOString(),weight:w?parseFloat(w):undefined,fat:f?parseFloat(f):undefined,muscle:m?parseFloat(m):undefined});
@@ -701,6 +768,36 @@ function ProfileTab({bodyLogs,onSaveBody,exercises,setExercises,routines,setRout
   const addExercise=()=>{if(!newEx.trim())return;setExercises(e=>[...e,{id:uid(),name:newEx.trim(),cat:newExCat}]);setNewEx("");};
   const toggleRoutineEx=id=>setNewRexs(e=>e.includes(id)?e.filter(x=>x!==id):[...e,id]);
   const saveRoutine=()=>{if(!newRname.trim()||newRexs.length===0)return;setRoutines(r=>[...r,{id:uid(),name:newRname.trim(),exercises:newRexs}]);setNewRname("");setNewRexs([]);};
+
+  const exportData=()=>{
+    const data={version:1,exportDate:new Date().toISOString(),workouts,bodyLogs,exercises,routines};
+    const json=JSON.stringify(data,null,2);
+    const blob=new Blob([json],{type:"application/json"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    const date=new Date().toISOString().slice(0,10);
+    a.href=url;a.download=`treenipaiva_varmuuskopio_${date}.json`;
+    document.body.appendChild(a);a.click();
+    document.body.removeChild(a);URL.revokeObjectURL(url);
+  };
+
+  const importData=e=>{
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        if(!data.version||!data.workouts)throw new Error("Virheellinen tiedosto");
+        if(!window.confirm(`Tuodaan varmuuskopio (${data.workouts.length} treeniä, viety ${fmtDate(data.exportDate)})?\n\nNYKYINEN DATA KORVATAAN.`))return;
+        onImport(data);
+        setImportMsg(`✅ Tuotu ${data.workouts.length} treeniä ja ${data.bodyLogs?.length||0} mittausta.`);
+        setTimeout(()=>setImportMsg(""),4000);
+      }catch{setImportMsg("❌ Tiedoston lukeminen epäonnistui. Varmista että se on oikea varmuuskopiotiedosto.");}
+    };
+    reader.readAsText(file);
+    e.target.value="";
+  };
+
   return(
     <div>
       <div className="hist-tabs">
@@ -718,6 +815,25 @@ function ProfileTab({bodyLogs,onSaveBody,exercises,setExercises,routines,setRout
         </div>
         <button className="body-save" onClick={saveBody}>Tallenna mittaukset</button>
         {bodyLogs.length===0&&<div className="empty-state"><div className="empty-icon">⚖️</div><div className="empty-txt">Ei vielä mittauksia.</div></div>}
+
+        <div className="sec">Varmuuskopiointi</div>
+        <div className="card" style={{marginBottom:10}}>
+          <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>📤 Vie data</div>
+          <div style={{fontSize:12,color:C.textSub,marginBottom:12}}>Tallentaa kaikki treenisi, mittaukset, liikkeet ja ohjelmat JSON-tiedostoon.</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <span style={{fontSize:11,color:C.textMuted}}>{workouts.length} treeniä · {bodyLogs.length} mittausta</span>
+          </div>
+          <button className="body-save" onClick={exportData}>⬇️ Lataa varmuuskopio</button>
+        </div>
+        <div className="card">
+          <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>📥 Tuo data</div>
+          <div style={{fontSize:12,color:C.textSub,marginBottom:12}}>Palauta aiemmin tallennettu varmuuskopio. <span style={{color:C.red,fontWeight:600}}>Korvaa nykyisen datan.</span></div>
+          <label style={{display:"block",width:"100%",background:C.cyanDim,border:`1px solid ${C.cyan}`,borderRadius:10,padding:"12px",textAlign:"center",color:C.cyan,fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:"1px"}}>
+            📂 Valitse tiedosto
+            <input type="file" accept=".json" style={{display:"none"}} onChange={importData}/>
+          </label>
+          {importMsg&&<div style={{fontSize:12,marginTop:10,padding:"8px 12px",background:importMsg.startsWith("✅")?`rgba(0,201,128,0.1)`:`rgba(255,68,85,0.1)`,borderRadius:8,color:importMsg.startsWith("✅")?C.green:C.red}}>{importMsg}</div>}
+        </div>
       </>}
       {view==="exercises"&&<>
         <div className="sec">Lisää uusi liike</div>
@@ -786,6 +902,12 @@ export default function App(){
   const updateWorkout=w=>setWorkouts(ws=>ws.map(x=>x.id===w.id?w:x));
   const deleteWorkout=id=>setWorkouts(ws=>ws.filter(x=>x.id!==id));
   const deleteBody=idx=>setBodyLogs(ls=>ls.filter((_,i)=>i!==ls.length-1-idx));
+  const importAll=data=>{
+    if(data.workouts)setWorkouts(data.workouts);
+    if(data.bodyLogs)setBodyLogs(data.bodyLogs);
+    if(data.exercises)setExercises(data.exercises);
+    if(data.routines)setRoutines(data.routines);
+  };
 
   if(!unlocked)return(<><style>{FONTS+css}</style><LockScreen onUnlock={()=>setUnlocked(true)}/></>);
 
@@ -802,7 +924,7 @@ export default function App(){
           {tab==="workout"&&<WorkoutTab workouts={workouts} exercises={exercises} routines={routines} onSave={addWorkout}/>}
           {tab==="stats"&&<StatsTab workouts={workouts} bodyLogs={bodyLogs}/>}
           {tab==="history"&&<HistoryTab workouts={workouts} bodyLogs={bodyLogs} onUpdateWorkout={updateWorkout} onDeleteWorkout={deleteWorkout} onDeleteBody={deleteBody}/>}
-          {tab==="profile"&&<ProfileTab bodyLogs={bodyLogs} onSaveBody={addBodyLog} exercises={exercises} setExercises={e=>{setExercises(e);}} routines={routines} setRoutines={r=>{setRoutines(r);}}/>}
+          {tab==="profile"&&<ProfileTab bodyLogs={bodyLogs} onSaveBody={addBodyLog} exercises={exercises} setExercises={e=>{setExercises(e);}} routines={routines} setRoutines={r=>{setRoutines(r);}} workouts={workouts} onImport={importAll}/>}
         </div>
         <div className="tabbar">
           {TABS.map(t=><button key={t.id} className={`tab${tab===t.id?" on":""}`} onClick={()=>setTab(t.id)}>{t.icon}<span className="tab-lbl">{t.lbl}</span></button>)}
