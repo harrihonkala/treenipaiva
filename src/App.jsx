@@ -26,14 +26,59 @@ const load=(key,def)=>{try{const v=localStorage.getItem(key);return v?JSON.parse
 const save=(key,val)=>{try{localStorage.setItem(key,JSON.stringify(val));}catch{}};
 
 const DEFAULT_EXERCISES=[
-  {id:"e1",name:"Penkkipunnerrus",cat:"Rinta"},{id:"e2",name:"Vinopenkkipunnerrus",cat:"Rinta"},
-  {id:"e3",name:"Kyykky",cat:"Jalat"},{id:"e4",name:"Maastaveto",cat:"Selkä"},
-  {id:"e5",name:"Leuanveto",cat:"Selkä"},{id:"e6",name:"Soutu",cat:"Selkä"},
-  {id:"e7",name:"Olkapääpunnerrus",cat:"Hartiat"},{id:"e8",name:"Hauiskääntö",cat:"Hauis"},
-  {id:"e9",name:"Ojentajapunnerrus",cat:"Ojentaja"},{id:"e10",name:"Jalkaprässi",cat:"Jalat"},
-  {id:"e11",name:"Askelkyykky",cat:"Jalat"},{id:"e12",name:"Dippi",cat:"Rinta"},
-  {id:"e13",name:"Käsipunojen punnerrus",cat:"Rinta"},{id:"e14",name:"Lantionnosto",cat:"Jalat"},
+  // Rinta
+  {id:"e_rintaprassi",name:"Rintaprässi",cat:"Rinta"},{id:"e_pecdeck",name:"Pec deck / fly-laite",cat:"Rinta"},
+  {id:"e_kaabelifly",name:"Kaapeli-fly",cat:"Rinta"},{id:"e_penkkitanko",name:"Penkkipunnerrus tangolla",cat:"Rinta"},
+  {id:"e_penkkikasipainot",name:"Penkkipunnerrus käsipainoilla",cat:"Rinta"},{id:"e_vinopenkki",name:"Vinopenkkipunnerrus",cat:"Rinta"},
+  {id:"e_pullover",name:"Pullover käsipainolla",cat:"Rinta"},{id:"e_punnerrus",name:"Punnerrus",cat:"Rinta"},
+  {id:"e_dippirinta",name:"Dippi (eteen nojaava)",cat:"Rinta"},
+  // Selkä
+  {id:"e_ylatalia",name:"Ylätalja",cat:"Selkä"},{id:"e_alatalia",name:"Alatalja",cat:"Selkä"},
+  {id:"e_selkapenkki",name:"Selkäpenkki (hyperextension)",cat:"Selkä"},{id:"e_reversefly",name:"Reverse fly -laite",cat:"Selkä"},
+  {id:"e_maastaveto",name:"Maastaveto",cat:"Selkä"},{id:"e_kulmasoutu",name:"Kulmasoutu tangolla",cat:"Selkä"},
+  {id:"e_kasipainosoutu",name:"Käsipainosoutu",cat:"Selkä"},{id:"e_tbarsoutu",name:"T-bar soutu",cat:"Selkä"},
+  {id:"e_leuanveto",name:"Leuanveto",cat:"Selkä"},{id:"e_invertedrow",name:"Inverted row",cat:"Selkä"},
+  // Olkapäät
+  {id:"e_olkprassi",name:"Olkapääprässi",cat:"Olkapäät"},{id:"e_sivunostolaite",name:"Sivunostolaite",cat:"Olkapäät"},
+  {id:"e_reversepecdeck",name:"Reverse pec deck",cat:"Olkapäät"},{id:"e_pystypunntanko",name:"Pystypunnerrus tangolla",cat:"Olkapäät"},
+  {id:"e_pystypunnkasip",name:"Pystypunnerrus käsipainoilla",cat:"Olkapäät"},{id:"e_sivuvipunostot",name:"Sivuvipunostot",cat:"Olkapäät"},
+  {id:"e_etuvipunostot",name:"Etuvipunostot",cat:"Olkapäät"},{id:"e_takavipunostot",name:"Takavipunostot",cat:"Olkapäät"},
+  {id:"e_pikepushup",name:"Pike push-up",cat:"Olkapäät"},{id:"e_kasillaseisonta",name:"Käsilläseisontapunnerrus",cat:"Olkapäät"},
+  // Hauis
+  {id:"e_hauislaite",name:"Hauiskääntölaite",cat:"Hauis"},{id:"e_kaabelihauis",name:"Kaapelihauiskääntö",cat:"Hauis"},
+  {id:"e_hauistanko",name:"Hauiskääntö tangolla",cat:"Hauis"},{id:"e_hauiskasip",name:"Hauiskääntö käsipainoilla",cat:"Hauis"},
+  {id:"e_hammercurl",name:"Hammer curl",cat:"Hauis"},{id:"e_scotthauis",name:"Scott-hauiskääntö",cat:"Hauis"},
+  {id:"e_leuanvetovastote",name:"Leuanveto vastaotteella",cat:"Hauis"},
+  // Ojentajat
+  {id:"e_taliapunnerrus",name:"Taljapunnerrus",cat:"Ojentajat"},{id:"e_ojentajalaite",name:"Ojentajalaite",cat:"Ojentajat"},
+  {id:"e_ranskpunnerrus",name:"Ranskalainen punnerrus",cat:"Ojentajat"},{id:"e_ojentajapaan",name:"Ojentajapunnerrus pään yli",cat:"Ojentajat"},
+  {id:"e_penkkidippi",name:"Penkkidippi",cat:"Ojentajat"},{id:"e_dippi",name:"Dippi",cat:"Ojentajat"},
+  {id:"e_kapeapunnerrus",name:"Kapea punnerrus",cat:"Ojentajat"},
+  // Etureidet
+  {id:"e_jalkaprassi",name:"Jalkaprässi",cat:"Etureidet"},{id:"e_reidenovennus",name:"Reiden ojennus",cat:"Etureidet"},
+  {id:"e_kyykky",name:"Kyykky",cat:"Etureidet"},{id:"e_etukyykky",name:"Etukyykky",cat:"Etureidet"},
+  {id:"e_gobletsquat",name:"Goblet squat",cat:"Etureidet"},{id:"e_askelkyykky",name:"Askellus (lunges)",cat:"Etureidet"},
+  {id:"e_pistoolikyykky",name:"Pistoolikyykky",cat:"Etureidet"},
+  // Takareidet & Pakarat
+  {id:"e_reidenkoukistus",name:"Reiden koukistus",cat:"Takareidet"},{id:"e_pakaralaite",name:"Pakaralaite",cat:"Pakarat"},
+  {id:"e_maastavetosuora",name:"Maastaveto (suorin jaloin)",cat:"Takareidet"},{id:"e_hipthrust",name:"Hip thrust",cat:"Pakarat"},
+  {id:"e_bulgariansplit",name:"Bulgarian split squat",cat:"Pakarat"},{id:"e_lantionnosto",name:"Lantionnosto",cat:"Pakarat"},
+  {id:"e_nordic",name:"Nordic hamstring",cat:"Takareidet"},{id:"e_yhdenjalan",name:"Yhden jalan lantionnosto",cat:"Pakarat"},
+  // Pohkeet
+  {id:"e_pohjelaite",name:"Pohjelaite",cat:"Pohkeet"},{id:"e_pohjenousutpainot",name:"Pohjenousut painoilla",cat:"Pohkeet"},
+  {id:"e_pohjenousut",name:"Pohjenousut",cat:"Pohkeet"},
+  // Keskivartalo
+  {id:"e_vatsarutistuslaite",name:"Vatsarutistuslaite",cat:"Keskivartalo"},{id:"e_kaabelirutistus",name:"Kaapelirutistus",cat:"Keskivartalo"},
+  {id:"e_russiantwist",name:"Russian twist",cat:"Keskivartalo"},{id:"e_sivutaivutus",name:"Sivutaivutus",cat:"Keskivartalo"},
+  {id:"e_lankku",name:"Lankku",cat:"Keskivartalo"},{id:"e_sivulankku",name:"Sivulankku",cat:"Keskivartalo"},
+  {id:"e_jalkojennostot",name:"Jalkojen nostot",cat:"Keskivartalo"},{id:"e_mountainclimber",name:"Mountain climber",cat:"Keskivartalo"},
+  {id:"e_deadbug",name:"Dead bug",cat:"Keskivartalo"},{id:"e_hanginglegraise",name:"Hanging leg raise",cat:"Keskivartalo"},
+  // Koko keho
+  {id:"e_tempaus",name:"Tempaus",cat:"Koko keho"},{id:"e_tyonto",name:"Työntö (clean & press)",cat:"Koko keho"},
+  {id:"e_thruster",name:"Thruster",cat:"Koko keho"},{id:"e_burpee",name:"Burpee",cat:"Koko keho"},
+  {id:"e_karhukavely",name:"Karhukävely",cat:"Koko keho"},{id:"e_boxjump",name:"Box jump",cat:"Koko keho"},
 ];
+const EXERCISES_VERSION=2; // Kasvata tätä kun lisäät uusia oletusliikkeitä
 const DEFAULT_ROUTINES=[
   {id:"r1",name:"Yläkroppa A",exercises:["e1","e6","e7","e8"]},
   {id:"r2",name:"Alakroppa",exercises:["e3","e10","e11","e14"]},
@@ -939,7 +984,26 @@ export default function App(){
   const [tab,setTab]=useState("home");
   const [workouts,setWorkouts]=useState(()=>load(WORKOUTS_KEY,[]));
   const [bodyLogs,setBodyLogs]=useState(()=>load(BODY_KEY,[]));
-  const [exercises,setExercises]=useState(()=>load(EXERCISES_KEY,DEFAULT_EXERCISES));
+  const [exercises,setExercises]=useState(()=>{
+    const saved=load(EXERCISES_KEY,null);
+    const savedVersion=load("tp_exercises_version",0);
+    if(!saved||saved.length===0){
+      // Ei aiempaa dataa — lataa oletukset
+      save(EXERCISES_KEY,DEFAULT_EXERCISES);
+      save("tp_exercises_version",EXERCISES_VERSION);
+      return DEFAULT_EXERCISES;
+    }
+    if(savedVersion<EXERCISES_VERSION){
+      // Uusi versio: lisää puuttuvat oletusliikkeet säilyttäen käyttäjän omat
+      const savedIds=new Set(saved.map(e=>e.id));
+      const newDefaults=DEFAULT_EXERCISES.filter(e=>!savedIds.has(e.id));
+      const merged=[...saved,...newDefaults];
+      save(EXERCISES_KEY,merged);
+      save("tp_exercises_version",EXERCISES_VERSION);
+      return merged;
+    }
+    return saved;
+  });
   const [routines,setRoutines]=useState(()=>load(ROUTINES_KEY,DEFAULT_ROUTINES));
 
   useEffect(()=>save(WORKOUTS_KEY,workouts),[workouts]);
