@@ -95,12 +95,15 @@ body{background:${C.bg};color:${C.text};font-family:'Inter',sans-serif;overscrol
 .hdr-title{font-family:'Poppins',sans-serif;font-size:22px;font-weight:700;color:${C.text};letter-spacing:-0.3px;}
 .hdr-date{font-size:12px;color:${C.textSub};margin-top:2px;font-weight:400;}
 .content{flex:1;overflow-y:auto;padding:20px 20px 100px;}
-.tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:${C.surface};border-top:1px solid ${C.border};display:flex;padding:10px 0 28px;z-index:100;}
-.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;cursor:pointer;background:none;border:none;color:${C.textMuted};transition:color 0.2s;}
+.tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:${C.surface};border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;padding:8px 8px 28px;z-index:100;gap:4px;}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:0;cursor:pointer;background:none;border:none;color:${C.textMuted};transition:all 0.2s ease;}
 .tab.on{color:${C.primary};}
-.tab svg{width:22px;height:22px;stroke-width:1.8;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;transition:transform 0.2s;}
-.tab.on svg{transform:scale(1.08);}
-.tab-lbl{font-size:10px;font-weight:600;letter-spacing:0.3px;font-family:'Inter',sans-serif;}
+.tab-inner{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 12px;border-radius:14px;transition:all 0.2s ease;width:100%;}
+.tab.on .tab-inner{background:rgba(20,184,166,0.12);box-shadow:0 0 12px rgba(20,184,166,0.2);}
+.tab svg{width:24px;height:24px;stroke-width:1.75;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;transition:all 0.2s ease;}
+.tab.on svg{transform:scale(1.05);}
+.tab-lbl{font-size:10px;font-weight:400;letter-spacing:0.3px;font-family:'Inter',sans-serif;transition:all 0.2s ease;}
+.tab.on .tab-lbl{font-weight:600;}
 .card{background:${C.card};border-radius:18px;border:1px solid ${C.border};padding:18px;margin-bottom:12px;}
 .sec{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:${C.textMuted};margin:24px 0 12px;font-family:'Inter',sans-serif;}
 .streak-wrap{background:${C.card};border-radius:20px;border:1px solid ${C.border};padding:20px;margin-bottom:16px;}
@@ -266,8 +269,74 @@ body{background:${C.bg};color:${C.text};font-family:'Inter',sans-serif;overscrol
 const uid=()=>Math.random().toString(36).slice(2,10);
 const fmtDate=d=>new Date(d).toLocaleDateString("fi-FI",{day:"numeric",month:"numeric",year:"2-digit"});
 const fmtTime=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
-const typeEmoji=t=>({gym:"🏋️",home:"🏠",run:"🏃",bike:"🚴",mob:"🧘"}[t]||"💪");
 const typeName=t=>({gym:"Kuntosali",home:"Kotitreeni",run:"Juoksulenkki",bike:"Pyörälenkki",mob:"Kehonhuolto"}[t]||t);
+
+// ─── LUCIDE SVG ICONS ────────────────────────────────────────────
+// All stroke-based, 1.75px stroke width, consistent style
+const Ico=({d,size=20,color="currentColor",fill="none",vb="0 0 24 24"})=>(
+  <svg width={size} height={size} viewBox={vb} fill={fill} stroke={color}
+    strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    {Array.isArray(d)?d.map((p,i)=><path key={i} d={p}/>):<path d={d}/>}
+  </svg>
+);
+const IcoCircle=({d,cx,cy,r,...p})=>(
+  <svg width={p.size||20} height={p.size||20} viewBox="0 0 24 24" fill="none"
+    stroke={p.color||"currentColor"} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    {cx&&<circle cx={cx} cy={cy} r={r}/>}{d&&<path d={d}/>}
+  </svg>
+);
+
+// Navigation icons
+const IcoHome=p=><Ico size={p.size} color={p.color} d={["M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z","M9 21V12h6v9"]}/>;
+const IcoPlus=p=><Ico size={p.size} color={p.color} d="M12 5v14M5 12h14"/>;
+const IcoTrendUp=p=><Ico size={p.size} color={p.color} d="M3 17l4-4 4 4 4-6 4 4"/>;
+const IcoCalendar=p=><Ico size={p.size} color={p.color} d={["M8 2v4M16 2v4M3 10h18","M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"]}/>;
+const IcoUser=p=><Ico size={p.size} color={p.color} d={["M12 12a4 4 0 100-8 4 4 0 000 8z","M4 20c0-4 3.6-7 8-7s8 3 8 7"]}/>;
+
+// Workout type icons
+const IcoGym=p=><Ico size={p.size} color={p.color} d="M6 5v14M18 5v14M6 12h12M3 7h3M18 7h3M3 17h3M18 17h3"/>;
+const IcoHome2=p=><Ico size={p.size} color={p.color} d={["M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z","M9 21V12h6v9"]}/>;
+const IcoRun=p=><Ico size={p.size} color={p.color} d={["M13 4a1 1 0 100-2 1 1 0 000 2z","M7.5 13.5l2-4 3.5 2 2-5.5","M7.5 13.5L6 17h5l2-4","M14 11l3 6"]}/>;
+const IcoBike=p=><Ico size={p.size} color={p.color} d={["M5 19a3 3 0 100-6 3 3 0 000 6z","M19 19a3 3 0 100-6 3 3 0 000 6z","M5 16l3-7h8l2 4","M9 9l2 4"]}/>;
+const IcoWellness=p=><Ico size={p.size} color={p.color} d={["M12 22c0 0-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z","M12 7v5l3 3"]}/>;
+
+// UI icons
+const IcoFlame=p=><Ico size={p.size} color={p.color} d="M12 2c0 6-6 8-6 13a6 6 0 0012 0c0-5-6-7-6-13zM9 17c0-2 3-4 3-6 0 2 3 4 3 6a3 3 0 01-6 0z"/>;
+const IcoTrash=p=><Ico size={p.size} color={p.color} d={["M3 6h18","M19 6l-1 14H6L5 6","M9 6V4h6v2","M10 11v6M14 11v6"]}/>;
+const IcoEdit=p=><Ico size={p.size} color={p.color} d={["M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7","M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z"]}/>;
+const IcoChevronRight=p=><Ico size={p.size} color={p.color} d="M9 18l6-6-6-6"/>;
+const IcoArrowLeft=p=><Ico size={p.size} color={p.color} d="M19 12H5M12 5l-7 7 7 7"/>;
+const IcoX=p=><Ico size={p.size} color={p.color} d="M18 6L6 18M6 6l12 12"/>;
+const IcoCheck=p=><Ico size={p.size} color={p.color} d="M20 6L9 17l-5-5"/>;
+const IcoDumbbell=p=><Ico size={p.size} color={p.color} d="M6 5v14M18 5v14M6 12h12M3 7h3M18 7h3M3 17h3M18 17h3"/>;
+const IcoScale=p=><Ico size={p.size} color={p.color} d={["M12 3v19","M5 12l7-9 7 9","M3 20h18"]}/>;
+const IcoTarget=p=><Ico size={p.size} color={p.color} d={["M12 22a10 10 0 100-20 10 10 0 000 20z","M12 18a6 6 0 100-12 6 6 0 000 12z","M12 14a2 2 0 100-4 2 2 0 000 4z"]}/>;
+const IcoLock=p=><Ico size={p.size} color={p.color} d={["M5 11V7a7 7 0 0114 0v4","M3 11h18v11H3z","M12 16a1 1 0 100-2 1 1 0 000 2z"]}/>;
+const IcoDownload=p=><Ico size={p.size} color={p.color} d={["M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4","M7 10l5 5 5-5","M12 15V3"]}/>;
+const IcoUpload=p=><Ico size={p.size} color={p.color} d={["M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4","M17 8l-5-5-5 5","M12 3v12"]}/>;
+const IcoListPlus=p=><Ico size={p.size} color={p.color} d={["M11 12H3","M16 6H3","M16 18H3","M18 9v6","M21 12h-6"]}/>;
+const IcoClipboard=p=><Ico size={p.size} color={p.color} d={["M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2","M9 5a2 2 0 002 2h2a2 2 0 002-2 2 2 0 00-2-2h-2a2 2 0 00-2 2z"]}/>;
+const IcoEye=p=><Ico size={p.size} color={p.color} d={["M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z","M12 15a3 3 0 100-6 3 3 0 000 6z"]}/>;
+const IcoEyeOff=p=><Ico size={p.size} color={p.color} d={["M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94","M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19","M1 1l22 22","M14.12 14.12a3 3 0 01-4.24-4.24"]}/>;
+const IcoSearch=p=><Ico size={p.size} color={p.color} d={["M11 19a8 8 0 100-16 8 8 0 000 16z","M21 21l-4.35-4.35"]}/>;
+const IcoWeight=p=><Ico size={p.size} color={p.color} d={["M6.5 6.5h11","M3 12h18","M6.5 17.5h11","M12 2v20","M9 6.5a3 3 0 003-3 3 3 0 003 3","M9 17.5a3 3 0 003 3 3 3 0 003-3"]}/>;
+
+// Aliases
+const IcoActivity=IcoTrendUp;
+
+// Type icon helper - returns JSX icon for workout type
+const TypeIcon=({type,size=20,color})=>{
+  const c=color||C.textSub;
+  if(type==="gym") return <IcoGym size={size} color={c}/>;
+  if(type==="home") return <IcoHome2 size={size} color={c}/>;
+  if(type==="run") return <IcoRun size={size} color={c}/>;
+  if(type==="bike") return <IcoBike size={size} color={c}/>;
+  if(type==="mob") return <IcoWellness size={size} color={c}/>;
+  return <IcoDumbbell size={size} color={c}/>;
+};
+
+// Type color for contextual icons
+const typeColor=t=>({gym:"#7C6FE0",home:"#7C6FE0",run:"#4A9EFF",bike:"#4A9EFF",mob:C.primary}[t]||C.textSub);
 
 function LineChart({data,color,labels}){
   if(!data||data.length<2)return null;
@@ -295,27 +364,31 @@ function LineChart({data,color,labels}){
   );
 }
 
-function LockScreen({onUnlock}){
+function LockScreen({onUnlock,noWrap}){
   const [pw,setPw]=useState("");const [show,setShow]=useState(false);
   const [err,setErr]=useState("");const [shake,setShake]=useState(false);
   const tryUnlock=()=>{
     if(pw===APP_PASSWORD){localStorage.setItem(AUTH_KEY,"1");onUnlock();}
     else{setErr("Väärä salasana");setShake(true);setPw("");setTimeout(()=>{setShake(false);setErr("");},1500);}
   };
-  return(
-    <div className="lock-wrap">
-      <div className="lock-icon">🔒</div>
-      <div className="lock-title">Treenipäiväkirja</div>
-      <div className="lock-sub">Syötä salasana jatkaaksesi</div>
+  const inner=(
+    <>
+      {!noWrap&&<div style={{marginBottom:24,opacity:0.7}}><IcoLock size={52} color={C.primary}/></div>}
+      {!noWrap&&<div className="lock-title">Treenipäiväkirja</div>}
+      {!noWrap&&<div className="lock-sub">Syötä salasana jatkaaksesi</div>}
       <div className="lock-input-wrap">
         <input className={`lock-input${shake?" err":""}`} type={show?"text":"password"} placeholder="••••••••"
           value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&tryUnlock()} autoFocus/>
-        <button className="lock-toggle" onClick={()=>setShow(s=>!s)}>{show?"🙈":"👁️"}</button>
+        <button className="lock-toggle" onClick={()=>setShow(s=>!s)} style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
+          {show?<IcoEye size={16} color={C.textMuted}/>:<IcoEyeOff size={16} color={C.textMuted}/>}
+        </button>
       </div>
       <div className="lock-err">{err}</div>
       <button className="lock-btn" onClick={tryUnlock}>Avaa</button>
-    </div>
+    </>
   );
+  if(noWrap)return inner;
+  return <div className="lock-wrap">{inner}</div>;
 }
 
 function HomeTab({workouts,onStart}){
@@ -349,7 +422,7 @@ function HomeTab({workouts,onStart}){
             <div className="streak-sub">Edellinen kuukausi: {lastMonth.length} treeniä</div>
           </div>
           <div style={{textAlign:"right"}}>
-            <div className="streak-icon">🔥</div>
+            <IcoFlame size={32} color="#FF9F0A"/>
             <div style={{fontSize:12,color:C.primary,marginTop:4,fontWeight:700,fontFamily:"'Inter',sans-serif"}}>{streak} pv putki</div>
           </div>
         </div>
@@ -365,14 +438,14 @@ function HomeTab({workouts,onStart}){
 
       {/* CTA */}
       <button className="cta" onClick={onStart}>
-        <span style={{fontSize:18}}>＋</span> Aloita treeni <span style={{fontSize:16}}>→</span>
+        <IcoPlus size={18} color="#000"/> Aloita treeni <IcoChevronRight size={16} color="#000"/>
       </button>
 
       {/* Last workout */}
       <div className="sec">Viimeisin treeni</div>
       {last?(
         <div className="card">
-          <div className="lw-type">{typeEmoji(last.type)} {typeName(last.type)} · {fmtDate(last.date)}</div>
+          <div className="lw-type"><TypeIcon type={last.type} size={13} color={C.primary}/> {typeName(last.type)} · {fmtDate(last.date)}</div>
           <div className="lw-name">{last.name||typeName(last.type)}</div>
           {last.exercises&&<div className="lw-ex">{last.exercises.slice(0,3).map(e=>e.name).join(" · ")}{last.exercises.length>3?" · ...":""}</div>}
           <div className="stats-row">
@@ -383,7 +456,9 @@ function HomeTab({workouts,onStart}){
         </div>
       ):(
         <div className="card" style={{display:"flex",alignItems:"center",gap:16,padding:"20px 18px"}}>
-          <div style={{width:52,height:52,borderRadius:14,background:C.primaryDim,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,flexShrink:0}}>🏋️</div>
+          <div style={{width:52,height:52,borderRadius:14,background:C.primaryDim,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <IcoDumbbell size={26} color={C.primary}/>
+          </div>
           <div style={{flex:1}}>
             <div style={{fontFamily:"'Poppins',sans-serif",fontSize:14,fontWeight:600,marginBottom:4}}>Ei vielä treenejä</div>
             <div style={{fontSize:12,color:C.textSub,marginBottom:10,lineHeight:1.4}}>Aloita ensimmäinen treeni ja aloita matkasi kohti tavoitteita!</div>
@@ -396,7 +471,7 @@ function HomeTab({workouts,onStart}){
       <div className="sec">Tällä viikolla</div>
       <div className="two-col">
         <div className="big-stat">
-          <div className="bs-icon primary">📅</div>
+          <div className="bs-icon primary"><IcoCalendar size={18} color={C.primary}/></div>
           <div className="bs-val">{weekCount}</div>
           <div className="bs-lbl">treeniä</div>
           <div className={`bs-diff ${countDiff>0?"pos":countDiff<0?"neg":"neu"}`}>
@@ -404,7 +479,7 @@ function HomeTab({workouts,onStart}){
           </div>
         </div>
         <div className="big-stat">
-          <div className="bs-icon secondary">📈</div>
+          <div className="bs-icon secondary"><IcoTrendUp size={18} color={C.secondary}/></div>
           <div className="bs-val">{weekMin}</div>
           <div className="bs-lbl">min yhteensä</div>
           <div className={`bs-diff ${minDiff>0?"pos":minDiff<0?"neg":"neu"}`}>
@@ -456,17 +531,25 @@ function WorkoutTab({workouts,exercises,routines,onSave}){
     onSave(w);setPhase("done");
   };
 
-  const TYPES=[{id:"gym",emoji:"🏋️",name:"Kuntosali",sub:"Vapaat painot & laitteet"},{id:"home",emoji:"🏠",name:"Kotitreeni",sub:"Kehonpaino & kotipainot"},{id:"run",emoji:"🏃",name:"Juoksulenkki",sub:"Ulkona tai juoksumatolla"},{id:"bike",emoji:"🚴",name:"Pyörälenkki",sub:"Maantie tai maastopyörä"},{id:"mob",emoji:"🧘",name:"Kehonhuolto",sub:"Venyttely & mobiliteetti"}];
+  const TYPES=[
+    {id:"gym",name:"Kuntosali",sub:"Vapaat painot & laitteet"},
+    {id:"home",name:"Kotitreeni",sub:"Kehonpaino & kotipainot"},
+    {id:"run",name:"Juoksulenkki",sub:"Ulkona tai juoksumatolla"},
+    {id:"bike",name:"Pyörälenkki",sub:"Maantie tai maastopyörä"},
+    {id:"mob",name:"Kehonhuolto",sub:"Venyttely & mobiliteetti"},
+  ];
   const filtered=exercises.filter(e=>e.name.toLowerCase().includes(search.toLowerCase()));
 
   if(phase==="select")return(
     <div>
-      <div style={{marginBottom:22}}><div style={{fontSize:22,fontWeight:800}}>Uusi treeni</div><div style={{fontSize:12,color:C.textSub,marginTop:4}}>Valitse treenityyppi</div></div>
-      <div className="type-grid">{TYPES.map(t=><div key={t.id} className={`type-card${type===t.id?" sel":""}`} onClick={()=>setType(t.id)}><span className="type-emoji">{t.emoji}</span><div className="type-name">{t.name}</div><div className="type-sub">{t.sub}</div></div>)}</div>
+      <div style={{marginBottom:22}}><div style={{fontFamily:"'Poppins',sans-serif",fontSize:22,fontWeight:700}}>Uusi treeni</div><div style={{fontSize:12,color:C.textSub,marginTop:4}}>Valitse treenityyppi</div></div>
+      <div className="type-grid">{TYPES.map(t=><div key={t.id} className={`type-card${type===t.id?" sel":""}`} onClick={()=>setType(t.id)}>
+        <div style={{marginBottom:12,opacity:type===t.id?1:0.7}}><TypeIcon type={t.id} size={28} color={type===t.id?C.primary:C.textSub}/></div>
+        <div className="type-name">{t.name}</div><div className="type-sub">{t.sub}</div></div>)}</div>
       {(type==="gym"||type==="home")&&routines.length>0&&<>
         <div className="sec">Valitse ohjelma (valinnainen)</div>
         {routines.map(r=>(
-          <div key={r.id} className="routine-card" style={{border:`2px solid ${wName===r.name?C.cyan:C.border}`,background:wName===r.name?C.cyanDim:C.card}} onClick={()=>{
+          <div key={r.id} className="routine-card" style={{border:`2px solid ${wName===r.name?C.primary:C.border}`,background:wName===r.name?C.primaryDim:C.card}} onClick={()=>{
             if(wName===r.name){setWName("");setExs([]);}
             else{
               const names=r.exercises.map(eid=>exercises.find(e=>e.id===eid)?.name).filter(Boolean);
@@ -474,7 +557,10 @@ function WorkoutTab({workouts,exercises,routines,onSave}){
               setWName(r.name);
             }
           }}>
-            <div className="routine-name" style={{color:wName===r.name?C.cyan:C.text}}>{wName===r.name?"✓ ":""}{r.name}</div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              {wName===r.name&&<IcoCheck size={14} color={C.primary}/>}
+              <div className="routine-name" style={{color:wName===r.name?C.primary:C.text}}>{r.name}</div>
+            </div>
             <div className="routine-exs">{r.exercises.map(eid=>exercises.find(e=>e.id===eid)?.name).filter(Boolean).join(" · ")}</div>
           </div>
         ))}
@@ -558,9 +644,9 @@ function WorkoutTab({workouts,exercises,routines,onSave}){
 
   return(
     <div className="done-wrap">
-      <div className="done-icon">✅</div>
+      <div style={{marginBottom:18,display:"flex",justifyContent:"center"}}><IcoCheck size={56} color={C.green}/></div>
       <div className="done-title">Treeni tallennettu!</div>
-      <div className="done-sub">Hienoa työtä 💪</div>
+      <div className="done-sub">Hienoa työtä!</div>
       <div className="stats-row" style={{marginBottom:28}}>
         <div className="stat-box"><div className="stat-v">{fmtTime(secs)}</div><div className="stat-l">kesto</div></div>
         <div className="stat-box"><div className="stat-v">{exs.length||"-"}</div><div className="stat-l">liikettä</div></div>
@@ -596,17 +682,17 @@ function StatsTab({workouts,bodyLogs}){
       </select>
       <div className="chart-wrap">
         <div className="chart-hdr"><div><div className="chart-title">{selEx||"—"}</div><div className="chart-sub">Paras paino per treeni (kg)</div></div>{pr&&<div className="chart-pr">PR {pr} kg</div>}</div>
-        {exData.length>=2?<><LineChart data={exData.map(d=>d.val)} color={C.cyan} labels={exData.map(d=>fmtDate(d.date))}/><div className="tag-row"><div className="tag c">+{(exData[exData.length-1].val-exData[0].val).toFixed(1)} kg</div>{pr&&<div className="tag">🏆 PR: {pr} kg</div>}</div></>:<div className="empty-state"><div className="empty-icon">📈</div><div className="empty-txt">Kirjaa vähintään 2 treeniä nähdäksesi kehityksen.</div></div>}
+        {exData.length>=2?<><LineChart data={exData.map(d=>d.val)} color={C.primary} labels={exData.map(d=>fmtDate(d.date))}/><div className="tag-row"><div className="tag c">+{(exData[exData.length-1].val-exData[0].val).toFixed(1)} kg</div>{pr&&<div className="tag">PR: {pr} kg</div>}</div></>:<div className="empty-state"><div style={{opacity:0.6,marginBottom:10}}><IcoActivity size={32} color={C.textMuted}/></div><div className="empty-txt">Kirjaa vähintään 2 treeniä nähdäksesi kehityksen.</div></div>}
       </div>
       <div className="sec">Juoksukehitys</div>
       <div className="chart-wrap">
         <div className="chart-hdr"><div><div className="chart-title">Juoksuvauhti</div><div className="chart-sub">min / km</div></div>{runData.length>0&&<div className="chart-pr">PR {Math.min(...runData.map(d=>d.val)).toFixed(2)}</div>}</div>
-        {runData.length>=2?<LineChart data={runData.map(d=>d.val)} color={C.cyan} labels={runData.map(d=>fmtDate(d.date))}/>:<div className="empty-state"><div className="empty-icon">🏃</div><div className="empty-txt">Ei vielä tarpeeksi lenkkejä.</div></div>}
+        {runData.length>=2?<LineChart data={runData.map(d=>d.val)} color={C.primary} labels={runData.map(d=>fmtDate(d.date))}/>:<div className="empty-state"><div style={{opacity:0.6,marginBottom:10}}><IcoRun size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä tarpeeksi lenkkejä.</div></div>}
       </div>
       <div className="sec">Pyöräkehitys</div>
       <div className="chart-wrap">
         <div className="chart-hdr"><div><div className="chart-title">Keskinopeus</div><div className="chart-sub">km / h</div></div>{bikeData.length>0&&<div className="chart-pr">PR {Math.max(...bikeData.map(d=>d.val)).toFixed(1)}</div>}</div>
-        {bikeData.length>=2?<LineChart data={bikeData.map(d=>d.val)} color={C.cyan} labels={bikeData.map(d=>fmtDate(d.date))}/>:<div className="empty-state"><div className="empty-icon">🚴</div><div className="empty-txt">Ei vielä tarpeeksi pyörälenkkejä.</div></div>}
+        {bikeData.length>=2?<LineChart data={bikeData.map(d=>d.val)} color={C.primary} labels={bikeData.map(d=>fmtDate(d.date))}/>:<div className="empty-state"><div style={{opacity:0.6,marginBottom:10}}><IcoBike size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä tarpeeksi pyörälenkkejä.</div></div>}
       </div>
       <div className="sec">Kehon kehitys</div>
       <div className="chart-tabs">
@@ -614,7 +700,7 @@ function StatsTab({workouts,bodyLogs}){
       </div>
       <div className="chart-wrap">
         <div className="chart-hdr"><div><div className="chart-title">{{weight:"Paino",fat:"Rasvaprosentti",muscle:"Lihasmassa"}[bodyMetric]}</div><div className="chart-sub">{{weight:"kg",fat:"%",muscle:"%"}[bodyMetric]}</div></div></div>
-        {bodyData.length>=2?<LineChart data={bodyData.map(d=>d.val)} color={C.cyan} labels={bodyData.map(d=>fmtDate(d.date))}/>:<div className="empty-state"><div className="empty-icon">⚖️</div><div className="empty-txt">Ei vielä tarpeeksi mittauksia.</div></div>}
+        {bodyData.length>=2?<LineChart data={bodyData.map(d=>d.val)} color={C.primary} labels={bodyData.map(d=>fmtDate(d.date))}/>:<div className="empty-state"><div style={{opacity:0.6,marginBottom:10}}><IcoWeight size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä tarpeeksi mittauksia.</div></div>}
       </div>
     </div>
   );
@@ -678,8 +764,10 @@ function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteB
   const BackHeader=({title,right})=>(
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
       <div style={{display:"flex",alignItems:"center",gap:10}}>
-        <button onClick={goBack} style={{background:"none",border:"none",color:C.textSub,fontSize:22,cursor:"pointer",padding:"0 4px",lineHeight:1}}>←</button>
-        <div style={{fontSize:16,fontWeight:800}}>{title}</div>
+        <button onClick={goBack} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:"7px 10px",cursor:"pointer",display:"flex",alignItems:"center"}}>
+          <IcoArrowLeft size={18} color={C.textSub}/>
+        </button>
+        <div style={{fontFamily:"'Poppins',sans-serif",fontSize:16,fontWeight:600}}>{title}</div>
       </div>
       {right}
     </div>
@@ -689,12 +777,14 @@ function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteB
   if(phase==="view"&&viewing)return(
     <div>
       <BackHeader title={viewing.name||typeName(viewing.type)} right={
-        <button onClick={openEdit} style={{background:C.cyanDim,border:`1px solid ${C.cyanMid}`,borderRadius:10,padding:"8px 16px",color:C.cyan,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Syne',sans-serif",letterSpacing:"0.5px"}}>✏️ Muokkaa</button>
+        <button onClick={openEdit} style={{background:C.primaryDim,border:`1px solid ${C.primaryMid}`,borderRadius:10,padding:"8px 14px",color:C.primary,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",gap:6}}>
+          <IcoEdit size={14} color={C.primary}/> Muokkaa
+        </button>
       }/>
       <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
-        <div className="lw-type">{typeEmoji(viewing.type)} {typeName(viewing.type)}</div>
+        <div className="lw-type"><TypeIcon type={viewing.type} size={13} color={C.primary}/> {typeName(viewing.type)}</div>
         <div className="lw-type" style={{background:"none",borderColor:C.border,color:C.textSub}}>{fmtDate(viewing.date)}</div>
-        {viewing.duration&&<div className="lw-type" style={{background:"none",borderColor:C.border,color:C.textSub}}>⏱ {fmtTime(viewing.duration)}</div>}
+        {viewing.duration&&<div className="lw-type" style={{background:"none",borderColor:C.border,color:C.textSub,display:"flex",alignItems:"center",gap:4}}><IcoCalendar size={12} color={C.textMuted}/> {fmtTime(viewing.duration)}</div>}
       </div>
       {(viewing.type==="run"||viewing.type==="bike")&&viewing.km&&(
         <div className="two-col">
@@ -729,10 +819,10 @@ function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteB
       </>}
       {viewing.mobility&&viewing.mobility.length>0&&<>
         <div className="sec">Venyttelyt</div>
-        {viewing.mobility.map((m,i)=><div key={i} className="mob-row"><div className="mob-name">{m.name}</div><div style={{fontSize:13,color:C.cyan,fontFamily:"'JetBrains Mono',monospace"}}>{m.secs} sek</div></div>)}
+        {viewing.mobility.map((m,i)=><div key={i} className="mob-row"><div className="mob-name">{m.name}</div><div style={{fontSize:13,color:C.primary,fontFamily:"'Inter',sans-serif"}}>{m.secs} sek</div></div>)}
       </>}
       {viewing.notes&&<><div className="sec">Muistiinpanot</div><div className="card" style={{fontSize:13,color:C.textSub,fontStyle:"italic"}}>"{viewing.notes}"</div></>}
-      <button className="danger-btn" style={{marginTop:8}} onClick={doDelete}>🗑️ Poista treeni</button>
+      <button className="danger-btn" style={{marginTop:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8}} onClick={doDelete}><IcoTrash size={16} color={C.red}/> Poista treeni</button>
     </div>
   );
 
@@ -787,14 +877,17 @@ function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteB
         ))}
       </div>
       {tab==="workouts"&&(workouts.length===0?(
-        <div className="empty-state"><div className="empty-icon">📋</div><div className="empty-txt">Ei vielä treenejä.</div></div>
+        <div className="empty-state"><div style={{opacity:0.6,marginBottom:12}}><IcoClipboard size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä treenejä.</div></div>
       ):workouts.map(w=>(
         <div key={w.id} className="hist-row" style={{cursor:"pointer"}} onClick={()=>openView(w)}>
           <div className="hist-row-top">
-            <div className="hist-row-name">{typeEmoji(w.type)} {w.name||typeName(w.type)}</div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <TypeIcon type={w.type} size={16} color={C.textSub}/>
+              <div className="hist-row-name">{w.name||typeName(w.type)}</div>
+            </div>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
               <div className="hist-row-date">{fmtDate(w.date)}</div>
-              <span style={{fontSize:11,color:C.textMuted}}>›</span>
+              <IcoChevronRight size={14} color={C.textMuted}/>
             </div>
           </div>
           <div className="hist-row-sub">{w.exercises&&`${w.exercises.length} liikettä · ${w.exercises.reduce((a,e)=>a+e.sets.length,0)} sarjaa`}{(w.type==="run"||w.type==="bike")&&w.km&&`${w.km} km · ${w.mins} min`}{w.duration?` · ${fmtTime(w.duration)}`:""}</div>
@@ -822,17 +915,17 @@ function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteB
             </div>
           );
         })}
-        {allExNames.length===0&&<div className="empty-state"><div className="empty-icon">💪</div><div className="empty-txt">Ei vielä liikkeitä.</div></div>}
+        {allExNames.length===0&&<div className="empty-state"><div style={{opacity:0.6,marginBottom:12}}><IcoDumbbell size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä liikkeitä.</div></div>}
       </div>}
       {tab==="body"&&(bodyLogs.length===0?(
-        <div className="empty-state"><div className="empty-icon">⚖️</div><div className="empty-txt">Ei vielä mittauksia.</div><div className="empty-sub">Lisää mittaukset Profiili-välilehdellä.</div></div>
+        <div className="empty-state"><div style={{opacity:0.6,marginBottom:12}}><IcoScale size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä mittauksia.</div><div className="empty-sub">Lisää mittaukset Profiili-välilehdellä.</div></div>
       ):[...bodyLogs].reverse().map((l,i)=>(
         <div key={i} className="hist-row">
           <div className="hist-row-top">
             <div className="hist-row-name">Kehon mittaus</div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <div className="hist-row-date">{fmtDate(l.date)}</div>
-              <button className="icon-btn" style={{fontSize:14,padding:"0 2px"}} onClick={e=>{e.stopPropagation();if(window.confirm("Poistetaanko tämä mittaus?"))onDeleteBody(bodyLogs.length-1-i);}}>🗑️</button>
+              <button className="icon-btn" style={{fontSize:14,padding:"0 2px",display:"flex",alignItems:"center"}} onClick={e=>{e.stopPropagation();if(window.confirm("Poistetaanko tämä mittaus?"))onDeleteBody(bodyLogs.length-1-i);}}><IcoTrash size={14} color={C.textMuted}/></button>
             </div>
           </div>
           <div style={{display:"flex",gap:16,marginTop:8}}>
@@ -901,7 +994,10 @@ function ProfileTab({bodyLogs,onSaveBody,exercises,setExercises,routines,setRout
         ))}
       </div>
       {view==="profile"&&<>
-        <div className="prof-hdr"><div className="avatar">💪</div><div><div className="prof-name">Omatreeni</div><div className="prof-since">Aloitettu {MONTHS[new Date().getMonth()]} {new Date().getFullYear()}</div></div></div>
+        <div className="prof-hdr">
+          <div className="avatar"><IcoUser size={26} color={C.primary}/></div>
+          <div><div className="prof-name">Omatreeni</div><div className="prof-since">Aloitettu {MONTHS[new Date().getMonth()]} {new Date().getFullYear()}</div></div>
+        </div>
         <div className="sec">Kehon mittaukset — tänään</div>
         <div className="body-grid">
           {[["Paino",w,setW,"kg"],["Lihas",m,setM,"%"],["Rasva",f,setF,"%"]].map(([lbl,val,set,unit])=>(
@@ -909,25 +1005,31 @@ function ProfileTab({bodyLogs,onSaveBody,exercises,setExercises,routines,setRout
           ))}
         </div>
         <button className="body-save" onClick={saveBody}>Tallenna mittaukset</button>
-        {bodyLogs.length===0&&<div className="empty-state"><div className="empty-icon">⚖️</div><div className="empty-txt">Ei vielä mittauksia.</div></div>}
+        {bodyLogs.length===0&&<div className="empty-state"><div style={{opacity:0.6,marginBottom:12}}><IcoScale size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä mittauksia.</div></div>}
 
         <div className="sec">Varmuuskopiointi</div>
         <div className="card" style={{marginBottom:10}}>
-          <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>📤 Vie data</div>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+            <IcoDownload size={16} color={C.primary}/>
+            <div style={{fontSize:13,fontWeight:600}}>Vie data</div>
+          </div>
           <div style={{fontSize:12,color:C.textSub,marginBottom:12}}>Tallentaa kaikki treenisi, mittaukset, liikkeet ja ohjelmat JSON-tiedostoon.</div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
             <span style={{fontSize:11,color:C.textMuted}}>{workouts.length} treeniä · {bodyLogs.length} mittausta</span>
           </div>
-          <button className="body-save" onClick={exportData}>⬇️ Lataa varmuuskopio</button>
+          <button className="body-save" onClick={exportData}>Lataa varmuuskopio</button>
         </div>
         <div className="card">
-          <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>📥 Tuo data</div>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+            <IcoUpload size={16} color={C.primary}/>
+            <div style={{fontSize:13,fontWeight:600}}>Tuo data</div>
+          </div>
           <div style={{fontSize:12,color:C.textSub,marginBottom:12}}>Palauta aiemmin tallennettu varmuuskopio. <span style={{color:C.red,fontWeight:600}}>Korvaa nykyisen datan.</span></div>
-          <label style={{display:"block",width:"100%",background:C.cyanDim,border:`1px solid ${C.cyan}`,borderRadius:10,padding:"12px",textAlign:"center",color:C.cyan,fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:"1px"}}>
-            📂 Valitse tiedosto
+          <label style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,width:"100%",background:C.primaryDim,border:`1px solid ${C.primaryMid}`,borderRadius:10,padding:"12px",color:C.primary,fontSize:13,fontWeight:600,cursor:"pointer"}}>
+            <IcoUpload size={15} color={C.primary}/> Valitse tiedosto
             <input type="file" accept=".json" style={{display:"none"}} onChange={importData}/>
           </label>
-          {importMsg&&<div style={{fontSize:12,marginTop:10,padding:"8px 12px",background:importMsg.startsWith("✅")?`rgba(0,201,128,0.1)`:`rgba(255,68,85,0.1)`,borderRadius:8,color:importMsg.startsWith("✅")?C.green:C.red}}>{importMsg}</div>}
+          {importMsg&&<div style={{fontSize:12,marginTop:10,padding:"8px 12px",background:importMsg.startsWith("✅")?`rgba(0,201,128,0.1)`:`rgba(255,68,85,0.1)`,borderRadius:8,color:importMsg.startsWith("✅")?C.green:C.red,display:"flex",alignItems:"center",gap:6}}>{importMsg.startsWith("✅")?<IcoCheck size={13} color={C.green}/>:<IcoX size={13} color={C.red}/>}{importMsg.replace("✅ ","").replace("❌ ","")}</div>}
         </div>
       </>}
       {view==="exercises"&&<>
@@ -941,7 +1043,7 @@ function ProfileTab({bodyLogs,onSaveBody,exercises,setExercises,routines,setRout
         {exercises.map(ex=>(
           <div key={ex.id} className="hist-row" style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div><div style={{fontSize:13,fontWeight:700}}>{ex.name}</div><div style={{fontSize:11,color:C.textMuted,marginTop:2}}>{ex.cat}</div></div>
-            <button className="icon-btn" onClick={()=>setExercises(e=>e.filter(x=>x.id!==ex.id))}>🗑️</button>
+            <button className="icon-btn" onClick={()=>setExercises(e=>e.filter(x=>x.id!==ex.id))} style={{display:"flex",alignItems:"center"}}><IcoTrash size={15} color={C.textMuted}/></button>
           </div>
         ))}
       </>}
@@ -951,18 +1053,18 @@ function ProfileTab({bodyLogs,onSaveBody,exercises,setExercises,routines,setRout
         <div style={{fontSize:10,fontWeight:700,letterSpacing:2,color:C.textMuted,marginBottom:8}}>VALITSE LIIKKEET</div>
         <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}}>
           {exercises.map(ex=>(
-            <button key={ex.id} onClick={()=>toggleRoutineEx(ex.id)} style={{padding:"6px 12px",borderRadius:20,border:`1px solid ${newRexs.includes(ex.id)?C.cyan:C.border}`,background:newRexs.includes(ex.id)?C.cyanDim:"none",color:newRexs.includes(ex.id)?C.cyan:C.textSub,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Syne',sans-serif"}}>
+            <button key={ex.id} onClick={()=>toggleRoutineEx(ex.id)} style={{padding:"6px 12px",borderRadius:20,border:`1px solid ${newRexs.includes(ex.id)?C.primary:C.border}`,background:newRexs.includes(ex.id)?C.primaryDim:"none",color:newRexs.includes(ex.id)?C.primary:C.textSub,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
               {ex.name}
             </button>
           ))}
         </div>
-        <button className="cta" style={{marginBottom:20}} onClick={saveRoutine}>+ Tallenna ohjelma</button>
+        <button className="cta" style={{marginBottom:20}} onClick={saveRoutine}><IcoListPlus size={16} color="#000"/> Tallenna ohjelma</button>
         <div className="sec">Tallennetut ohjelmat</div>
-        {routines.length===0?<div className="empty-state"><div className="empty-icon">📋</div><div className="empty-txt">Ei vielä ohjelmia.</div></div>:
+        {routines.length===0?<div className="empty-state"><div style={{opacity:0.6,marginBottom:12}}><IcoClipboard size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä ohjelmia.</div></div>:
         routines.map(r=>(
           <div key={r.id} className="hist-row" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div><div style={{fontSize:13,fontWeight:700}}>{r.name}</div><div style={{fontSize:11,color:C.textSub,marginTop:3}}>{r.exercises.map(eid=>exercises.find(e=>e.id===eid)?.name).filter(Boolean).join(" · ")}</div></div>
-            <button className="icon-btn" onClick={()=>setRoutines(r2=>r2.filter(x=>x.id!==r.id))}>🗑️</button>
+            <button className="icon-btn" onClick={()=>setRoutines(r2=>r2.filter(x=>x.id!==r.id))} style={{display:"flex",alignItems:"center"}}><IcoTrash size={15} color={C.textMuted}/></button>
           </div>
         ))}
       </>}
@@ -971,11 +1073,11 @@ function ProfileTab({bodyLogs,onSaveBody,exercises,setExercises,routines,setRout
 }
 
 const TABS=[
-  {id:"home",lbl:"Koti",icon:<svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>},
-  {id:"workout",lbl:"Treeni",icon:<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>},
-  {id:"stats",lbl:"Tilastot",icon:<svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-6"/></svg>},
-  {id:"history",lbl:"Historia",icon:<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>},
-  {id:"profile",lbl:"Profiili",icon:<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>},
+  {id:"home",lbl:"Koti",Icon:IcoHome},
+  {id:"workout",lbl:"Treeni",Icon:IcoDumbbell},
+  {id:"stats",lbl:"Tilastot",Icon:IcoTrendUp},
+  {id:"history",lbl:"Historia",Icon:IcoCalendar},
+  {id:"profile",lbl:"Profiili",Icon:IcoUser},
 ];
 const TITLES={home:"Treenipäiväkirja",workout:"Uusi treeni",stats:"Tilastot",history:"Historia",profile:"Profiili"};
 
@@ -988,13 +1090,11 @@ export default function App(){
     const saved=load(EXERCISES_KEY,null);
     const savedVersion=load("tp_exercises_version",0);
     if(!saved||saved.length===0){
-      // Ei aiempaa dataa — lataa oletukset
       save(EXERCISES_KEY,DEFAULT_EXERCISES);
       save("tp_exercises_version",EXERCISES_VERSION);
       return DEFAULT_EXERCISES;
     }
     if(savedVersion<EXERCISES_VERSION){
-      // Uusi versio: lisää puuttuvat oletusliikkeet säilyttäen käyttäjän omat
       const savedIds=new Set(saved.map(e=>e.id));
       const newDefaults=DEFAULT_EXERCISES.filter(e=>!savedIds.has(e.id));
       const merged=[...saved,...newDefaults];
@@ -1023,7 +1123,15 @@ export default function App(){
     if(data.routines)setRoutines(data.routines);
   };
 
-  if(!unlocked)return(<><style>{FONTS+css}</style><LockScreen onUnlock={()=>setUnlocked(true)}/></>);
+  if(!unlocked)return(
+    <><style>{FONTS+css}</style>
+    <div className="lock-wrap">
+      <div style={{marginBottom:24,opacity:0.7}}><IcoLock size={52} color={C.primary}/></div>
+      <div className="lock-title">Treenipäiväkirja</div>
+      <div className="lock-sub">Syötä salasana jatkaaksesi</div>
+      <LockScreen onUnlock={()=>setUnlocked(true)} noWrap/>
+    </div></>
+  );
 
   return(
     <>
@@ -1038,10 +1146,21 @@ export default function App(){
           {tab==="workout"&&<WorkoutTab workouts={workouts} exercises={exercises} routines={routines} onSave={addWorkout}/>}
           {tab==="stats"&&<StatsTab workouts={workouts} bodyLogs={bodyLogs}/>}
           {tab==="history"&&<HistoryTab workouts={workouts} bodyLogs={bodyLogs} onUpdateWorkout={updateWorkout} onDeleteWorkout={deleteWorkout} onDeleteBody={deleteBody}/>}
-          {tab==="profile"&&<ProfileTab bodyLogs={bodyLogs} onSaveBody={addBodyLog} exercises={exercises} setExercises={e=>{setExercises(e);}} routines={routines} setRoutines={r=>{setRoutines(r);}} workouts={workouts} onImport={importAll}/>}
+          {tab==="profile"&&<ProfileTab bodyLogs={bodyLogs} onSaveBody={addBodyLog} exercises={exercises} setExercises={setExercises} routines={routines} setRoutines={setRoutines} workouts={workouts} onImport={importAll}/>}
         </div>
+        {/* Premium tab bar */}
         <div className="tabbar">
-          {TABS.map(t=><button key={t.id} className={`tab${tab===t.id?" on":""}`} onClick={()=>setTab(t.id)}>{t.icon}<span className="tab-lbl">{t.lbl}</span></button>)}
+          {TABS.map(t=>{
+            const active=tab===t.id;
+            return(
+              <button key={t.id} className={`tab${active?" on":""}`} onClick={()=>setTab(t.id)}>
+                <div className="tab-inner">
+                  <t.Icon size={24} color={active?C.primary:C.textMuted}/>
+                  <span className="tab-lbl">{t.lbl}</span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     </>
