@@ -736,12 +736,242 @@ function CalTab({workouts}){
   );
 }
 
-function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteBody}){
+function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteBody,onUpdateBody,exercises}){
   const [tab,setTab]=useState("workouts");
   const gymW=workouts.filter(w=>w.type==="gym"||w.type==="home");
   const allExNames=[...new Set(gymW.flatMap(w=>w.exercises?.map(e=>e.name)||[]))];
   const [selEx,setSelEx]=useState("");
   const exName=selEx||allExNames[0]||"";
+  const [phase,setPhase]=useState("list");
+  const [viewing,setViewing]=useState(null);
+  const [editData,setEditData]=useState(null);
+  const [showAddEx,setShowAddEx]=useState(false);
+  const [exSearch,setExSearch]=useState("");
+  const [editBodyIdx,setEditBodyIdx]=useState(null);
+  const [editBodyData,setEditBodyData]=useState(null);
+
+  const openView=w=>{setViewing(w);setPhase("view");};
+  const openEdit=()=>{setEditData(JSON.parse(JSON.stringify(viewing)));setPhase("edit");};
+  const cancelEdit=()=>{setEditData(null);setPhase("view");setShowAddEx(false);setExSearch("");};
+  const saveEdit=()=>{onUpdateWorkout(editData);setViewing(editData);setEditData(null);setPhase("view");setShowAddEx(false);};
+  const doDelete=()=>{if(window.confirm("Poistetaanko tämä treeni?")){onDeleteWorkout(viewing.id);setViewing(null);setPhase("list");}};
+  const goBack=()=>{if(phase==="edit"){cancelEdit();}else{setViewing(null);setPhase("list");}};
+  const updEditSet=(ei,si,f,v)=>setEditData(d=>({...d,exercises:d.exercises.map((ex,i)=>i===ei?{...ex,sets:ex.sets.map((s,j)=>j===si?{...s,[f]:v}:s)}:ex)}));
+  const delEditSet=(ei,si)=>setEditData(d=>({...d,exercises:d.exercises.map((ex,i)=>i===ei?{...ex,sets:ex.sets.filter((_,j)=>j!==si)}:ex)}));
+  const addEditSet=ei=>setEditData(d=>({...d,exercises:d.exercises.map((ex,i)=>i===ei?{...ex,sets:[...ex.sets,{kg:"",reps:"",rpe:"",fail:false}]}:ex)}));
+  const delEditEx=ei=>setEditData(d=>({...d,exercises:d.exercises.filter((_,i)=>i!==ei)}));
+  const addEditEx=name=>{setEditData(d=>({...d,exercises:[...(d.exercises||[]),{id:uid(),name,sets:[{kg:"",reps:"",rpe:"",fail:false}]}]}));setShowAddEx(false);setExSearch("");};
+
+  const BackHeader=({title,right})=>(
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <button onClick={goBack} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:"7px 10px",cursor:"pointer",display:"flex",alignItems:"center"}}>
+          <IcoArrowLeft size={18} color={C.textSub}/>
+        </button>
+        <div style={{fontFamily:"'Poppins',sans-serif",fontSize:16,fontWeight:600}}>{title}</div>
+      </div>
+      {right}
+    </div>
+  );
+
+  if(phase==="view"&&viewing)return(
+    <div>
+      <BackHeader title={viewing.name||typeName(viewing.type)} right={
+        <button onClick={openEdit} style={{background:C.primaryDim,border:`1px solid ${C.primaryMid}`,borderRadius:10,padding:"8px 14px",color:C.primary,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",gap:6}}>
+          <IcoEdit size={14} color={C.primary}/> Muokkaa
+        </button>
+      }/>
+      <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+        <div className="lw-type"><TypeIcon type={viewing.type} size={13} color={C.primary}/> {typeName(viewing.type)}</div>
+        <div className="lw-type" style={{background:"none",borderColor:C.border,color:C.textSub}}>{fmtDate(viewing.date)}</div>
+        {viewing.duration&&<div className="lw-type" style={{background:"none",borderColor:C.border,color:C.textSub}}>{fmtTime(viewing.duration)}</div>}
+      </div>
+      {(viewing.type==="run"||viewing.type==="bike")&&viewing.km&&(
+        <div className="two-col">
+          <div className="big-stat"><div className="bs-val">{viewing.km}</div><div className="bs-lbl">km</div></div>
+          <div className="big-stat">
+            <div className="bs-val">{viewing.type==="run"?(()=>{const p=parseFloat(viewing.mins)/parseFloat(viewing.km);const m=Math.floor(p),s=Math.round((p-m)*60);return`${m}:${String(s).padStart(2,"0")}`;})():(parseFloat(viewing.km)/parseFloat(viewing.mins)*60).toFixed(1)}</div>
+            <div className="bs-lbl">{viewing.type==="run"?"min/km":"km/h"}</div>
+          </div>
+        </div>
+      )}
+      {viewing.exercises&&<>
+        <div className="stats-row" style={{marginBottom:16}}>
+          <div className="stat-box"><div className="stat-v">{viewing.exercises.length}</div><div className="stat-l">liikettä</div></div>
+          <div className="stat-box"><div className="stat-v">{viewing.exercises.reduce((a,e)=>a+e.sets.length,0)}</div><div className="stat-l">sarjaa</div></div>
+          <div className="stat-box"><div className="stat-v">{viewing.exercises.reduce((a,e)=>a+e.sets.reduce((b,s)=>b+(parseFloat(s.kg)||0)*(parseInt(s.reps)||0),0),0).toFixed(0)}</div><div className="stat-l">kg volyymi</div></div>
+        </div>
+        {viewing.exercises.map((ex,ei)=>(
+          <div key={ei} className="ex-card">
+            <div className="ex-hdr"><div className="ex-name">{ex.name}</div></div>
+            <div className="set-labels"><div className="sl">#</div><div className="sl">kg</div><div className="sl">toistot</div><div className="sl">RPE</div><div className="sl">Fail</div></div>
+            {ex.sets.map((s,si)=>(
+              <div key={si} className="set-row">
+                <div className="set-n">{si+1}</div>
+                <div className="inp" style={{background:"none",border:"none",color:C.text}}>{s.kg||"—"}</div>
+                <div className="inp" style={{background:"none",border:"none",color:C.text}}>{s.reps||"—"}</div>
+                <div className="rpe-sel" style={{background:"none",border:"none",color:s.rpe?C.textSub:C.textMuted}}>{s.rpe||"—"}</div>
+                <div className={`fail-btn${s.fail?" on":""}`} style={{cursor:"default"}}>{s.fail?"✓":"—"}</div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </>}
+      {viewing.notes&&<><div className="sec">Muistiinpanot</div><div className="card" style={{fontSize:13,color:C.textSub,fontStyle:"italic"}}>"{viewing.notes}"</div></>}
+      <button className="danger-btn" style={{marginTop:8}} onClick={doDelete}>Poista treeni</button>
+    </div>
+  );
+
+  if(phase==="edit"&&editData)return(
+    <div>
+      <BackHeader title="Muokkaa treeniä"/>
+      <input className="text-inp" style={{width:"100%",marginBottom:10}} value={editData.name||""} onChange={e=>setEditData(d=>({...d,name:e.target.value}))} placeholder="Treenin nimi"/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+        <div><div style={{fontSize:10,color:C.textMuted,marginBottom:4}}>KESTO (min)</div>
+          <input className="inp" type="number" value={Math.round((editData.duration||0)/60)} onChange={e=>setEditData(d=>({...d,duration:parseInt(e.target.value||0)*60}))}/>
+        </div>
+        <div><div style={{fontSize:10,color:C.textMuted,marginBottom:4}}>PÄIVÄMÄÄRÄ</div>
+          <input className="inp" type="date" value={editData.date?editData.date.slice(0,10):""} onChange={e=>setEditData(d=>({...d,date:new Date(e.target.value).toISOString()}))} style={{fontSize:12}}/>
+        </div>
+      </div>
+      {(editData.type==="run"||editData.type==="bike")&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+        <div><div style={{fontSize:10,color:C.textMuted,marginBottom:4}}>MATKA (km)</div><input className="inp" type="number" value={editData.km||""} onChange={e=>setEditData(d=>({...d,km:e.target.value}))}/></div>
+        <div><div style={{fontSize:10,color:C.textMuted,marginBottom:4}}>AIKA (min)</div><input className="inp" type="number" value={editData.mins||""} onChange={e=>setEditData(d=>({...d,mins:e.target.value}))}/></div>
+      </div>}
+      {editData.exercises&&editData.exercises.map((ex,ei)=>(
+        <div key={ei} className="ex-card">
+          <div className="ex-hdr"><div className="ex-name">{ex.name}</div><button className="ex-del" onClick={()=>delEditEx(ei)}>✕</button></div>
+          <div className="set-labels" style={{gridTemplateColumns:"26px 1fr 1fr 60px 44px 28px"}}>
+            <div className="sl">#</div><div className="sl">kg</div><div className="sl">toistot</div><div className="sl">RPE</div><div className="sl">Fail</div><div className="sl"/>
+          </div>
+          {ex.sets.map((s,si)=>(
+            <div key={si} className="edit-row">
+              <div className="set-n">{si+1}</div>
+              <input className="inp" type="number" value={s.kg} onChange={e=>updEditSet(ei,si,"kg",e.target.value)}/>
+              <input className="inp" type="number" value={s.reps} onChange={e=>updEditSet(ei,si,"reps",e.target.value)}/>
+              <select className="rpe-sel" value={s.rpe} onChange={e=>updEditSet(ei,si,"rpe",e.target.value)}><option value="">—</option>{[6,7,7.5,8,8.5,9,9.5,10].map(r=><option key={r}>{r}</option>)}</select>
+              <button className={`fail-btn${s.fail?" on":""}`} onClick={()=>updEditSet(ei,si,"fail",!s.fail)}>{s.fail?"✓":"FAIL"}</button>
+              <button className="del-set" onClick={()=>delEditSet(ei,si)}>✕</button>
+            </div>
+          ))}
+          <button className="add-set" onClick={()=>addEditSet(ei)}>+ Lisää sarja</button>
+        </div>
+      ))}
+      {editData.exercises&&<button className="add-ex" style={{marginBottom:8}} onClick={()=>setShowAddEx(true)}>+ Lisää liike</button>}
+      <div style={{fontSize:10,color:C.textMuted,marginBottom:4,marginTop:4}}>MUISTIINPANOT</div>
+      <textarea className="notes" rows={2} value={editData.notes||""} onChange={e=>setEditData(d=>({...d,notes:e.target.value}))}/>
+      <button className="save-btn" onClick={saveEdit}>Tallenna muutokset</button>
+      {showAddEx&&<div className="overlay" onClick={()=>{setShowAddEx(false);setExSearch("");}}>
+        <div className="modal" onClick={e=>e.stopPropagation()}>
+          <div className="modal-handle"/>
+          <div className="modal-title">Lisää liike</div>
+          <input className="modal-search" placeholder="Hae liikettä..." value={exSearch} onChange={e=>setExSearch(e.target.value)} autoFocus/>
+          {(exercises||[]).filter(e=>e.name.toLowerCase().includes(exSearch.toLowerCase())).map(ex=>(
+            <div key={ex.id} className="ex-opt" onClick={()=>addEditEx(ex.name)}>
+              <span>{ex.name}</span><span className="ex-opt-sub">{ex.cat}</span>
+            </div>
+          ))}
+        </div>
+      </div>}
+    </div>
+  );
+
+  return(
+    <div>
+      {editBodyIdx!==null&&editBodyData&&(
+        <div className="overlay" onClick={()=>{setEditBodyIdx(null);setEditBodyData(null);}}>
+          <div className="modal" onClick={e=>e.stopPropagation()}>
+            <div className="modal-handle"/>
+            <div className="modal-title">Muokkaa mittausta</div>
+            <div style={{fontSize:11,color:C.textMuted,marginBottom:14}}>{fmtDate(editBodyData.date)}</div>
+            <div className="body-grid" style={{marginBottom:16}}>
+              {[["Paino","weight","kg"],["Lihas","muscle","%"],["Rasva","fat","%"]].map(([lbl,key,unit])=>(
+                <div key={key} className="body-box">
+                  <div className="body-lbl">{lbl}</div>
+                  <input className="body-inp" type="number" placeholder="—" value={editBodyData[key]||""} onChange={e=>setEditBodyData(d=>({...d,[key]:e.target.value?parseFloat(e.target.value):undefined}))}/>
+                  <div className="body-unit">{unit}</div>
+                </div>
+              ))}
+            </div>
+            <button className="body-save" onClick={()=>{onUpdateBody(editBodyIdx,editBodyData);setEditBodyIdx(null);setEditBodyData(null);}}>Tallenna</button>
+          </div>
+        </div>
+      )}
+      <div className="hist-tabs">
+        {[["workouts","Treenit"],["exercises","Liikkeet"],["body","Keho"]].map(([k,l])=>(
+          <button key={k} className={`hist-tab${tab===k?" on":""}`} onClick={()=>setTab(k)}>{l}</button>
+        ))}
+      </div>
+      {tab==="workouts"&&(workouts.length===0?(
+        <div className="empty-state"><div style={{opacity:0.6,marginBottom:12}}><IcoClipboard size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä treenejä.</div></div>
+      ):workouts.map(w=>(
+        <div key={w.id} className="hist-row" style={{cursor:"pointer"}} onClick={()=>openView(w)}>
+          <div className="hist-row-top">
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <TypeIcon type={w.type} size={16} color={C.textSub}/>
+              <div className="hist-row-name">{w.name||typeName(w.type)}</div>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <div className="hist-row-date">{fmtDate(w.date)}</div>
+              <IcoChevronRight size={14} color={C.textMuted}/>
+            </div>
+          </div>
+          <div className="hist-row-sub">{w.exercises&&`${w.exercises.length} liikettä · ${w.exercises.reduce((a,e)=>a+e.sets.length,0)} sarjaa`}{(w.type==="run"||w.type==="bike")&&w.km&&`${w.km} km · ${w.mins} min`}{w.duration?` · ${fmtTime(w.duration)}`:""}</div>
+          {w.exercises&&<div style={{marginTop:6}}>{w.exercises.map(e=><span key={e.name} className="hist-badge">{e.name}</span>)}</div>}
+          {w.notes&&<div style={{fontSize:11,color:C.textMuted,marginTop:6,fontStyle:"italic"}}>"{w.notes}"</div>}
+        </div>
+      )))}
+      {tab==="exercises"&&<div>
+        <select className="ex-sel" value={exName} onChange={e=>setSelEx(e.target.value)}>
+          {allExNames.length>0?allExNames.map(n=><option key={n}>{n}</option>):<option>Ei vielä treenejä</option>}
+        </select>
+        {gymW.filter(w=>w.exercises?.some(e=>e.name===exName)).map(w=>{
+          const ex=w.exercises.find(e=>e.name===exName);
+          return(
+            <div key={w.id} className="hist-row">
+              <div className="hist-row-top"><div className="hist-row-name">{exName}</div><div className="hist-row-date">{fmtDate(w.date)}</div></div>
+              <div style={{marginTop:8}}>{ex.sets.map((s,i)=>(
+                <div key={i} style={{display:"flex",gap:12,fontSize:12,color:C.textSub,fontFamily:"'Inter',sans-serif",marginBottom:4}}>
+                  <span style={{color:C.textMuted,minWidth:20}}>{i+1}.</span>
+                  <span>{s.kg||"—"} kg × {s.reps||"—"} toistoa</span>
+                  {s.rpe&&<span style={{color:C.textMuted}}>RPE {s.rpe}</span>}
+                  {s.fail&&<span style={{color:C.red}}>FAIL</span>}
+                </div>
+              ))}</div>
+            </div>
+          );
+        })}
+        {allExNames.length===0&&<div className="empty-state"><div style={{opacity:0.6,marginBottom:12}}><IcoDumbbell size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä liikkeitä.</div></div>}
+      </div>}
+      {tab==="body"&&(bodyLogs.length===0?(
+        <div className="empty-state"><div style={{opacity:0.6,marginBottom:12}}><IcoScale size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä mittauksia.</div><div className="empty-sub">Lisää mittaukset Profiili-välilehdellä.</div></div>
+      ):[...bodyLogs].reverse().map((l,i)=>{
+        const realIdx=bodyLogs.length-1-i;
+        return(
+          <div key={i} className="hist-row">
+            <div className="hist-row-top">
+              <div className="hist-row-name">Kehon mittaus</div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <div className="hist-row-date">{fmtDate(l.date)}</div>
+                <button className="icon-btn" style={{display:"flex",alignItems:"center",padding:"2px 4px"}} onClick={e=>{e.stopPropagation();setEditBodyIdx(realIdx);setEditBodyData({...l});}}>
+                  <IcoEdit size={14} color={C.textMuted}/>
+                </button>
+                <button className="icon-btn" style={{display:"flex",alignItems:"center",padding:"2px 4px"}} onClick={e=>{e.stopPropagation();if(window.confirm("Poistetaanko tämä mittaus?"))onDeleteBody(realIdx);}}>
+                  <IcoTrash size={14} color={C.textMuted}/>
+                </button>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:16,marginTop:8}}>
+              {l.weight&&<div><div style={{fontSize:18,fontWeight:700,color:C.primary,fontFamily:"'Poppins',sans-serif"}}>{l.weight}</div><div style={{fontSize:10,color:C.textMuted}}>kg</div></div>}
+              {l.fat&&<div><div style={{fontSize:18,fontWeight:700,color:C.primary,fontFamily:"'Poppins',sans-serif"}}>{l.fat}</div><div style={{fontSize:10,color:C.textMuted}}>rasva%</div></div>}
+              {l.muscle&&<div><div style={{fontSize:18,fontWeight:700,color:C.primary,fontFamily:"'Poppins',sans-serif"}}>{l.muscle}</div><div style={{fontSize:10,color:C.textMuted}}>lihas%</div></div>}
+            </div>
+          </div>
+        );
+      }))}
+    </div>
+  );
+}
 
   // 3 phases: "list" | "view" | "edit"
   const [phase,setPhase]=useState("list");
@@ -1116,6 +1346,7 @@ export default function App(){
   const updateWorkout=w=>setWorkouts(ws=>ws.map(x=>x.id===w.id?w:x));
   const deleteWorkout=id=>setWorkouts(ws=>ws.filter(x=>x.id!==id));
   const deleteBody=idx=>setBodyLogs(ls=>ls.filter((_,i)=>i!==ls.length-1-idx));
+  const updateBody=(idx,data)=>setBodyLogs(ls=>ls.map((l,i)=>i===idx?data:l));
   const importAll=data=>{
     if(data.workouts)setWorkouts(data.workouts);
     if(data.bodyLogs)setBodyLogs(data.bodyLogs);
@@ -1145,7 +1376,7 @@ export default function App(){
           {tab==="home"&&<HomeTab workouts={workouts} onStart={()=>setTab("workout")}/>}
           {tab==="workout"&&<WorkoutTab workouts={workouts} exercises={exercises} routines={routines} onSave={addWorkout}/>}
           {tab==="stats"&&<StatsTab workouts={workouts} bodyLogs={bodyLogs}/>}
-          {tab==="history"&&<HistoryTab workouts={workouts} bodyLogs={bodyLogs} onUpdateWorkout={updateWorkout} onDeleteWorkout={deleteWorkout} onDeleteBody={deleteBody}/>}
+          {tab==="history"&&<HistoryTab workouts={workouts} bodyLogs={bodyLogs} onUpdateWorkout={updateWorkout} onDeleteWorkout={deleteWorkout} onDeleteBody={deleteBody} onUpdateBody={updateBody} exercises={exercises}/>}
           {tab==="profile"&&<ProfileTab bodyLogs={bodyLogs} onSaveBody={addBodyLog} exercises={exercises} setExercises={setExercises} routines={routines} setRoutines={setRoutines} workouts={workouts} onImport={importAll}/>}
         </div>
         {/* Premium tab bar */}
