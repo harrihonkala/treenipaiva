@@ -971,7 +971,6 @@ function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteB
       }))}
     </div>
   );
-}
 
   // 3 phases: "list" | "view" | "edit"
   const [phase,setPhase]=useState("list");
