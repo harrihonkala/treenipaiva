@@ -971,6 +971,7 @@ function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteB
       }))}
     </div>
   );
+}
 
 function ProfileTab({bodyLogs,onSaveBody,exercises,setExercises,routines,setRoutines,workouts,onImport}){
   const [w,setW]=useState("");const [m,setM]=useState("");const [f,setF]=useState("");
@@ -1199,5 +1200,4 @@ export default function App(){
       </div>
     </>
   );
-}
 }
