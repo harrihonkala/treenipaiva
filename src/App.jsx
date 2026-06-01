@@ -269,6 +269,7 @@ body{background:${C.bg};color:${C.text};font-family:'Inter',sans-serif;overscrol
 const uid=()=>Math.random().toString(36).slice(2,10);
 const fmtDate=d=>new Date(d).toLocaleDateString("fi-FI",{day:"numeric",month:"numeric",year:"2-digit"});
 const fmtTime=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+const fmtNum=(n,dec=1)=>Number(n).toFixed(dec).replace(".",",");
 const typeName=t=>({gym:"Kuntosali",home:"Kotitreeni",run:"Juoksulenkki",bike:"Pyörälenkki",mob:"Kehonhuolto"}[t]||t);
 
 // ─── LUCIDE SVG ICONS ────────────────────────────────────────────
@@ -519,7 +520,7 @@ function WorkoutTab({workouts,exercises,routines,onSave}){
   const upd=(ei,si,f,v)=>setExs(e=>e.map((x,i)=>i===ei?{...x,sets:x.sets.map((s,j)=>j===si?{...s,[f]:v}:s)}:x));
   const toggleFail=(ei,si)=>setExs(e=>e.map((x,i)=>i===ei?{...x,sets:x.sets.map((s,j)=>j===si?{...s,fail:!s.fail}:s)}:x));
   const pace=()=>{if(!km||!mins)return"--:--";const p=parseFloat(mins)/parseFloat(km);const m=Math.floor(p),s=Math.round((p-m)*60);return`${m}:${String(s).padStart(2,"0")}`;};
-  const speed=()=>{if(!km||!mins)return"--";return(parseFloat(km)/parseFloat(mins)*60).toFixed(1);};
+  const speed=()=>{if(!km||!mins)return"--";return fmtNum(parseFloat(km)/parseFloat(mins)*60,1);};
   const getPrev=name=>workouts.filter(w=>w.exercises?.some(e=>e.name===name)).slice(0,3).map(w=>({date:w.date,sets:w.exercises.find(e=>e.name===name).sets}));
 
   const doSave=()=>{
@@ -682,16 +683,16 @@ function StatsTab({workouts,bodyLogs}){
       </select>
       <div className="chart-wrap">
         <div className="chart-hdr"><div><div className="chart-title">{selEx||"—"}</div><div className="chart-sub">Paras paino per treeni (kg)</div></div>{pr&&<div className="chart-pr">PR {pr} kg</div>}</div>
-        {exData.length>=2?<><LineChart data={exData.map(d=>d.val)} color={C.primary} labels={exData.map(d=>fmtDate(d.date))}/><div className="tag-row"><div className="tag c">+{(exData[exData.length-1].val-exData[0].val).toFixed(1)} kg</div>{pr&&<div className="tag">PR: {pr} kg</div>}</div></>:<div className="empty-state"><div style={{opacity:0.6,marginBottom:10}}><IcoActivity size={32} color={C.textMuted}/></div><div className="empty-txt">Kirjaa vähintään 2 treeniä nähdäksesi kehityksen.</div></div>}
+        {exData.length>=2?<><LineChart data={exData.map(d=>d.val)} color={C.primary} labels={exData.map(d=>fmtDate(d.date))}/><div className="tag-row"><div className="tag c">+{fmtNum(exData[exData.length-1].val-exData[0].val,1)} kg</div>{pr&&<div className="tag">PR: {pr} kg</div>}</div></>:<div className="empty-state"><div style={{opacity:0.6,marginBottom:10}}><IcoActivity size={32} color={C.textMuted}/></div><div className="empty-txt">Kirjaa vähintään 2 treeniä nähdäksesi kehityksen.</div></div>}
       </div>
       <div className="sec">Juoksukehitys</div>
       <div className="chart-wrap">
-        <div className="chart-hdr"><div><div className="chart-title">Juoksuvauhti</div><div className="chart-sub">min / km</div></div>{runData.length>0&&<div className="chart-pr">PR {Math.min(...runData.map(d=>d.val)).toFixed(2)}</div>}</div>
+        <div className="chart-hdr"><div><div className="chart-title">Juoksuvauhti</div><div className="chart-sub">min / km</div></div>{runData.length>0&&<div className="chart-pr">PR {fmtNum(Math.min(...runData.map(d=>d.val)),2)}</div>}</div>
         {runData.length>=2?<LineChart data={runData.map(d=>d.val)} color={C.primary} labels={runData.map(d=>fmtDate(d.date))}/>:<div className="empty-state"><div style={{opacity:0.6,marginBottom:10}}><IcoRun size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä tarpeeksi lenkkejä.</div></div>}
       </div>
       <div className="sec">Pyöräkehitys</div>
       <div className="chart-wrap">
-        <div className="chart-hdr"><div><div className="chart-title">Keskinopeus</div><div className="chart-sub">km / h</div></div>{bikeData.length>0&&<div className="chart-pr">PR {Math.max(...bikeData.map(d=>d.val)).toFixed(1)}</div>}</div>
+        <div className="chart-hdr"><div><div className="chart-title">Keskinopeus</div><div className="chart-sub">km / h</div></div>{bikeData.length>0&&<div className="chart-pr">PR {fmtNum(Math.max(...bikeData.map(d=>d.val)),1)}</div>}</div>
         {bikeData.length>=2?<LineChart data={bikeData.map(d=>d.val)} color={C.primary} labels={bikeData.map(d=>fmtDate(d.date))}/>:<div className="empty-state"><div style={{opacity:0.6,marginBottom:10}}><IcoBike size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä tarpeeksi pyörälenkkejä.</div></div>}
       </div>
       <div className="sec">Kehon kehitys</div>
@@ -790,7 +791,7 @@ function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteB
         <div className="two-col">
           <div className="big-stat"><div className="bs-val">{viewing.km}</div><div className="bs-lbl">km</div></div>
           <div className="big-stat">
-            <div className="bs-val">{viewing.type==="run"?(()=>{const p=parseFloat(viewing.mins)/parseFloat(viewing.km);const m=Math.floor(p),s=Math.round((p-m)*60);return`${m}:${String(s).padStart(2,"0")}`;})():(parseFloat(viewing.km)/parseFloat(viewing.mins)*60).toFixed(1)}</div>
+            <div className="bs-val">{viewing.type==="run"?(()=>{const p=parseFloat(viewing.mins)/parseFloat(viewing.km);const m=Math.floor(p),s=Math.round((p-m)*60);return`${m}:${String(s).padStart(2,"0")}`;})():fmtNum(parseFloat(viewing.km)/parseFloat(viewing.mins)*60,1)}</div>
             <div className="bs-lbl">{viewing.type==="run"?"min/km":"km/h"}</div>
           </div>
         </div>
