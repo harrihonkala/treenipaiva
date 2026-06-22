@@ -492,7 +492,7 @@ function HomeTab({workouts,onStart}){
   );
 }
 
-function WorkoutTab({workouts,exercises,routines,onSave}){
+function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange}){
   const [phase,setPhase]=useState("select");
   const [type,setType]=useState(null);
   const [wName,setWName]=useState("");
@@ -506,7 +506,13 @@ function WorkoutTab({workouts,exercises,routines,onSave}){
   const timer=useRef(null);const saved=useRef(false);
 
   useEffect(()=>{
-    if(phase==="log"){saved.current=false;timer.current=setInterval(()=>setSecs(s=>s+1),1000);}
+    if(phase==="log"){
+      saved.current=false;
+      timer.current=setInterval(()=>setSecs(s=>s+1),1000);
+      onActiveChange?.(true);
+    } else {
+      onActiveChange?.(phase!=="select"&&phase!=="done"?true:false);
+    }
     return()=>clearInterval(timer.current);
   },[phase]);
 
@@ -1119,6 +1125,7 @@ const TITLES={home:"Treenipäiväkirja",workout:"Uusi treeni",stats:"Tilastot",h
 export default function App(){
   const [unlocked,setUnlocked]=useState(()=>localStorage.getItem(AUTH_KEY)==="1");
   const [tab,setTab]=useState("home");
+  const [workoutActive,setWorkoutActive]=useState(false);
   const [workouts,setWorkouts]=useState(()=>load(WORKOUTS_KEY,[]));
   const [bodyLogs,setBodyLogs]=useState(()=>load(BODY_KEY,[]));
   const [exercises,setExercises]=useState(()=>{
@@ -1179,7 +1186,10 @@ export default function App(){
         </div>
         <div className="content">
           {tab==="home"&&<HomeTab workouts={workouts} onStart={()=>setTab("workout")}/>}
-          {tab==="workout"&&<WorkoutTab workouts={workouts} exercises={exercises} routines={routines} onSave={addWorkout}/>}
+          {/* WorkoutTab pysyy aina mountattuna jotta treeni ei keskeydy navigoinnista */}
+          <div style={{display:tab==="workout"?"block":"none"}}>
+            <WorkoutTab workouts={workouts} exercises={exercises} routines={routines} onSave={addWorkout} onActiveChange={setWorkoutActive}/>
+          </div>
           {tab==="stats"&&<StatsTab workouts={workouts} bodyLogs={bodyLogs}/>}
           {tab==="history"&&<HistoryTab workouts={workouts} bodyLogs={bodyLogs} onUpdateWorkout={updateWorkout} onDeleteWorkout={deleteWorkout} onDeleteBody={deleteBody} onUpdateBody={updateBody} exercises={exercises}/>}
           {tab==="profile"&&<ProfileTab bodyLogs={bodyLogs} onSaveBody={addBodyLog} exercises={exercises} setExercises={setExercises} routines={routines} setRoutines={setRoutines} workouts={workouts} onImport={importAll}/>}
@@ -1188,9 +1198,11 @@ export default function App(){
         <div className="tabbar">
           {TABS.map(t=>{
             const active=tab===t.id;
+            const showDot=t.id==="workout"&&workoutActive&&tab!=="workout";
             return(
               <button key={t.id} className={`tab${active?" on":""}`} onClick={()=>setTab(t.id)}>
-                <div className="tab-inner">
+                <div className="tab-inner" style={{position:"relative"}}>
+                  {showDot&&<div style={{position:"absolute",top:-2,right:-2,width:8,height:8,borderRadius:"50%",background:C.primary,boxShadow:`0 0 6px ${C.primary}`}}/>}
                   <t.Icon size={24} color={active?C.primary:C.textMuted}/>
                   <span className="tab-lbl">{t.lbl}</span>
                 </div>
