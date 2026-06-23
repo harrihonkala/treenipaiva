@@ -743,6 +743,74 @@ function CalTab({workouts}){
   );
 }
 
+function ExercisesHistory({gymW,allExNames,onOpenWorkout}){
+  const [expanded,setExpanded]=useState(null);
+  if(allExNames.length===0)return(
+    <div className="empty-state"><div style={{opacity:0.6,marginBottom:12}}><IcoDumbbell size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä liikkeitä.</div></div>
+  );
+  return(
+    <div>
+      {[...allExNames].sort().map(name=>{
+        const entries=gymW.filter(w=>w.exercises?.some(e=>e.name===name)).map(w=>({w,sets:w.exercises.find(e=>e.name===name).sets}));
+        const isOpen=expanded===name;
+        const lastThree=entries.slice(0,3);
+        const pr=entries.length?Math.max(...entries.flatMap(e=>e.sets.map(s=>parseFloat(s.kg)||0))):0;
+        return(
+          <div key={name} className="hist-row" style={{marginBottom:8}}>
+            {/* Header */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}} onClick={()=>setExpanded(isOpen?null:name)}>
+              <div>
+                <div className="hist-row-name">{name}</div>
+                <div style={{fontSize:11,color:C.textSub,marginTop:2}}>
+                  {entries.length} treeniä {pr>0&&`· PR: ${pr} kg`}
+                </div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <div style={{fontSize:10,color:C.textMuted}}>{isOpen?"Sulje":"Avaa"}</div>
+                <IcoChevronRight size={14} color={C.textMuted} style={{transform:isOpen?"rotate(90deg)":"none",transition:"transform 0.2s"}}/>
+              </div>
+            </div>
+            {/* Last 3 sets preview */}
+            {!isOpen&&<div style={{marginTop:10,display:"flex",gap:6,flexWrap:"wrap"}}>
+              {lastThree.map((e,i)=>(
+                <div key={i} style={{background:C.surface,borderRadius:8,padding:"6px 10px",fontSize:11,color:C.textSub,border:`1px solid ${C.border}`}}>
+                  <div style={{fontSize:9,color:C.textMuted,marginBottom:3}}>{fmtDate(e.w.date)}</div>
+                  {e.sets.slice(0,3).map((s,si)=>(
+                    <div key={si} style={{fontFamily:"'Inter',sans-serif"}}>{s.kg||"—"}kg × {s.reps||"—"}</div>
+                  ))}
+                  {e.sets.length>3&&<div style={{color:C.textMuted,fontSize:9}}>+{e.sets.length-3} sarjaa</div>}
+                </div>
+              ))}
+            </div>}
+            {/* Full history when expanded */}
+            {isOpen&&<div style={{marginTop:12}}>
+              {entries.map((e,i)=>(
+                <div key={i} style={{marginBottom:10,paddingBottom:10,borderBottom:`1px solid ${C.border}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                    <div style={{fontSize:12,fontWeight:600,color:C.text}}>{fmtDate(e.w.date)}</div>
+                    <button onClick={()=>onOpenWorkout(e.w)} style={{background:"none",border:`1px solid ${C.cyanMid}`,borderRadius:8,padding:"3px 10px",color:C.primary,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",gap:4}}>
+                      <IcoChevronRight size={12} color={C.primary}/>
+                      Avaa treeni
+                    </button>
+                  </div>
+                  {e.sets.map((s,si)=>(
+                    <div key={si} style={{display:"flex",gap:12,fontSize:12,color:C.textSub,fontFamily:"'Inter',sans-serif",marginBottom:3}}>
+                      <span style={{color:C.textMuted,minWidth:18}}>{si+1}.</span>
+                      <span>{s.kg||"—"} kg × {s.reps||"—"} toistoa</span>
+                      {s.rpe&&<span style={{color:C.textMuted}}>RPE {s.rpe}</span>}
+                      {s.fail&&<span style={{color:C.red}}>FAIL</span>}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteBody,onUpdateBody,exercises}){
   const [tab,setTab]=useState("workouts");
   const gymW=workouts.filter(w=>w.type==="gym"||w.type==="home");
@@ -928,28 +996,7 @@ function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteB
           {w.notes&&<div style={{fontSize:11,color:C.textMuted,marginTop:6,fontStyle:"italic"}}>"{w.notes}"</div>}
         </div>
       )))}
-      {tab==="exercises"&&<div>
-        <select className="ex-sel" value={exName} onChange={e=>setSelEx(e.target.value)}>
-          {allExNames.length>0?allExNames.map(n=><option key={n}>{n}</option>):<option>Ei vielä treenejä</option>}
-        </select>
-        {gymW.filter(w=>w.exercises?.some(e=>e.name===exName)).map(w=>{
-          const ex=w.exercises.find(e=>e.name===exName);
-          return(
-            <div key={w.id} className="hist-row">
-              <div className="hist-row-top"><div className="hist-row-name">{exName}</div><div className="hist-row-date">{fmtDate(w.date)}</div></div>
-              <div style={{marginTop:8}}>{ex.sets.map((s,i)=>(
-                <div key={i} style={{display:"flex",gap:12,fontSize:12,color:C.textSub,fontFamily:"'Inter',sans-serif",marginBottom:4}}>
-                  <span style={{color:C.textMuted,minWidth:20}}>{i+1}.</span>
-                  <span>{s.kg||"—"} kg × {s.reps||"—"} toistoa</span>
-                  {s.rpe&&<span style={{color:C.textMuted}}>RPE {s.rpe}</span>}
-                  {s.fail&&<span style={{color:C.red}}>FAIL</span>}
-                </div>
-              ))}</div>
-            </div>
-          );
-        })}
-        {allExNames.length===0&&<div className="empty-state"><div style={{opacity:0.6,marginBottom:12}}><IcoDumbbell size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä liikkeitä.</div></div>}
-      </div>}
+      {tab==="exercises"&&<ExercisesHistory gymW={gymW} allExNames={allExNames} onOpenWorkout={w=>{openView(w);setTab("workouts");}}/>}
       {tab==="body"&&(bodyLogs.length===0?(
         <div className="empty-state"><div style={{opacity:0.6,marginBottom:12}}><IcoScale size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä mittauksia.</div><div className="empty-sub">Lisää mittaukset Profiili-välilehdellä.</div></div>
       ):[...bodyLogs].reverse().map((l,i)=>{
@@ -985,6 +1032,7 @@ function ProfileTab({bodyLogs,onSaveBody,exercises,setExercises,routines,setRout
   const [view,setView]=useState("profile");
   const [newEx,setNewEx]=useState("");const [newExCat,setNewExCat]=useState("Muu");
   const [newRname,setNewRname]=useState("");const [newRexs,setNewRexs]=useState([]);
+  const [routineSearch,setRoutineSearch]=useState("");
   const [importMsg,setImportMsg]=useState("");
   const CATS=["Rinta","Selkä","Jalat","Hartiat","Hauis","Ojentaja","Vatsa","Muu"];
 
@@ -1081,10 +1129,16 @@ function ProfileTab({bodyLogs,onSaveBody,exercises,setExercises,routines,setRout
         </select>
         <button className="cta" style={{marginBottom:20}} onClick={addExercise}>+ Lisää liike</button>
         <div className="sec">Kaikki liikkeet ({exercises.length})</div>
-        {exercises.map(ex=>(
+        {[...exercises].sort((a,b)=>a.name.localeCompare(b.name,"fi")).map(ex=>(
           <div key={ex.id} className="hist-row" style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div><div style={{fontSize:13,fontWeight:700}}>{ex.name}</div><div style={{fontSize:11,color:C.textMuted,marginTop:2}}>{ex.cat}</div></div>
-            <button className="icon-btn" onClick={()=>setExercises(e=>e.filter(x=>x.id!==ex.id))} style={{display:"flex",alignItems:"center"}}><IcoTrash size={15} color={C.textMuted}/></button>
+            <div><div style={{fontSize:13,fontWeight:600}}>{ex.name}</div><div style={{fontSize:11,color:C.textMuted,marginTop:2}}>{ex.cat}</div></div>
+            <button className="icon-btn" style={{display:"flex",alignItems:"center"}} onClick={()=>{
+              const usedIn=workouts.filter(w=>w.exercises?.some(e=>e.name===ex.name));
+              const msg=usedIn.length>0
+                ? `Liikkeellä "${ex.name}" on ${usedIn.length} kirjauksia historiatiedoissa. Haluatko silti poistaa sen liikepankista?\n\nHistoriatiedot säilyvät, mutta liikettä ei voi enää valita uusiin treeneihin.`
+                : `Poistetaanko liike "${ex.name}" liikepankista?`;
+              if(window.confirm(msg))setExercises(e=>e.filter(x=>x.id!==ex.id));
+            }}><IcoTrash size={15} color={C.textMuted}/></button>
           </div>
         ))}
       </>}
@@ -1092,20 +1146,28 @@ function ProfileTab({bodyLogs,onSaveBody,exercises,setExercises,routines,setRout
         <div className="sec">Luo uusi ohjelma</div>
         <input className="text-inp" style={{width:"100%",marginBottom:10}} placeholder="Ohjelman nimi (esim. Jalkapäivä)" value={newRname} onChange={e=>setNewRname(e.target.value)}/>
         <div style={{fontSize:10,fontWeight:700,letterSpacing:2,color:C.textMuted,marginBottom:8}}>VALITSE LIIKKEET</div>
+        <input className="text-inp" style={{width:"100%",marginBottom:10}} placeholder="Hae liikettä..." value={routineSearch} onChange={e=>setRoutineSearch(e.target.value)}/>
         <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}}>
-          {exercises.map(ex=>(
-            <button key={ex.id} onClick={()=>toggleRoutineEx(ex.id)} style={{padding:"6px 12px",borderRadius:20,border:`1px solid ${newRexs.includes(ex.id)?C.primary:C.border}`,background:newRexs.includes(ex.id)?C.primaryDim:"none",color:newRexs.includes(ex.id)?C.primary:C.textSub,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
-              {ex.name}
-            </button>
-          ))}
+          {[...exercises].sort((a,b)=>a.name.localeCompare(b.name,"fi"))
+            .filter(ex=>ex.name.toLowerCase().includes(routineSearch.toLowerCase()))
+            .map(ex=>(
+              <button key={ex.id} onClick={()=>toggleRoutineEx(ex.id)} style={{padding:"6px 12px",borderRadius:20,border:`1px solid ${newRexs.includes(ex.id)?C.primary:C.border}`,background:newRexs.includes(ex.id)?C.primaryDim:"none",color:newRexs.includes(ex.id)?C.primary:C.textSub,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
+                {ex.name}
+              </button>
+            ))}
         </div>
         <button className="cta" style={{marginBottom:20}} onClick={saveRoutine}><IcoListPlus size={16} color="#000"/> Tallenna ohjelma</button>
         <div className="sec">Tallennetut ohjelmat</div>
         {routines.length===0?<div className="empty-state"><div style={{opacity:0.6,marginBottom:12}}><IcoClipboard size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä ohjelmia.</div></div>:
-        routines.map(r=>(
+        [...routines].sort((a,b)=>a.name.localeCompare(b.name,"fi")).map(r=>(
           <div key={r.id} className="hist-row" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-            <div><div style={{fontSize:13,fontWeight:700}}>{r.name}</div><div style={{fontSize:11,color:C.textSub,marginTop:3}}>{r.exercises.map(eid=>exercises.find(e=>e.id===eid)?.name).filter(Boolean).join(" · ")}</div></div>
-            <button className="icon-btn" onClick={()=>setRoutines(r2=>r2.filter(x=>x.id!==r.id))} style={{display:"flex",alignItems:"center"}}><IcoTrash size={15} color={C.textMuted}/></button>
+            <div>
+              <div style={{fontSize:13,fontWeight:700}}>{r.name}</div>
+              <div style={{fontSize:11,color:C.textSub,marginTop:3}}>{r.exercises.map(eid=>exercises.find(e=>e.id===eid)?.name).filter(Boolean).sort((a,b)=>a.localeCompare(b,"fi")).join(" · ")}</div>
+            </div>
+            <button className="icon-btn" style={{display:"flex",alignItems:"center"}} onClick={()=>{
+              if(window.confirm(`Poistetaanko ohjelma "${r.name}"?`))setRoutines(r2=>r2.filter(x=>x.id!==r.id));
+            }}><IcoTrash size={15} color={C.textMuted}/></button>
           </div>
         ))}
       </>}
