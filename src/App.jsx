@@ -339,27 +339,45 @@ const TypeIcon=({type,size=20,color})=>{
 // Type color for contextual icons
 const typeColor=t=>({gym:"#7C6FE0",home:"#7C6FE0",run:"#4A9EFF",bike:"#4A9EFF",mob:C.primary}[t]||C.textSub);
 
-function LineChart({data,color,labels}){
+function LineChart({data,color,labels,unit=""}){
   if(!data||data.length<2)return null;
-  const w=300,h=80;
+  const chartW=260,h=80,yAxisW=36;
+  const totalW=chartW+yAxisW;
   const min=Math.min(...data),max=Math.max(...data),range=max-min||1;
-  const pts=data.map((v,i)=>({x:(i/(data.length-1))*w,y:h-((v-min)/range)*(h-10)-5}));
+  // 3 y-axis ticks: max, mid, min
+  const ticks=[max, min+range*0.5, min];
+  const pts=data.map((v,i)=>({
+    x:yAxisW+(i/(data.length-1))*chartW,
+    y:h-((v-min)/range)*(h-10)-5
+  }));
   const path=pts.map((p,i)=>`${i===0?"M":"L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
   const gid=`lg${color.replace(/[^a-z0-9]/gi,"")}`;
+  const fmtTick=v=>Number.isInteger(v)?String(v):fmtNum(v,1);
   return(
-    <div className="line-chart">
-      <svg className="line-svg" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+    <div className="line-chart" style={{height:96}}>
+      <svg className="line-svg" viewBox={`0 0 ${totalW} ${h}`} preserveAspectRatio="none">
         <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.25"/>
           <stop offset="100%" stopColor={color} stopOpacity="0.01"/>
         </linearGradient></defs>
-        <path d={path+` L${w},${h} L0,${h} Z`} fill={`url(#${gid})`}/>
+        {/* Gridlines */}
+        {ticks.map((tick,i)=>{
+          const y=h-((tick-min)/range)*(h-10)-5;
+          return<line key={i} x1={yAxisW} y1={y} x2={totalW} y2={y} stroke={C.border} strokeWidth="0.5" strokeDasharray="3,3"/>;
+        })}
+        {/* Y-axis labels */}
+        {ticks.map((tick,i)=>{
+          const y=h-((tick-min)/range)*(h-10)-5;
+          return<text key={i} x={yAxisW-4} y={y+3} textAnchor="end" fontSize="7" fill={C.textMuted} fontFamily="Inter,sans-serif">{fmtTick(tick)}</text>;
+        })}
+        {/* Chart area */}
+        <path d={path+` L${pts[pts.length-1].x},${h} L${yAxisW},${h} Z`} fill={`url(#${gid})`}/>
         <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         <circle cx={pts[pts.length-1].x} cy={pts[pts.length-1].y} r="4" fill={color} stroke={C.card} strokeWidth="2"/>
       </svg>
-      {labels&&<div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
-        <span style={{fontSize:9,color:C.textMuted,fontFamily:"'JetBrains Mono',monospace"}}>{labels[0]}</span>
-        <span style={{fontSize:9,color:C.textMuted,fontFamily:"'JetBrains Mono',monospace"}}>{labels[labels.length-1]}</span>
+      {labels&&<div style={{display:"flex",justifyContent:"space-between",marginTop:2,paddingLeft:yAxisW}}>
+        <span style={{fontSize:9,color:C.textMuted,fontFamily:"'Inter',sans-serif"}}>{labels[0]}</span>
+        <span style={{fontSize:9,color:C.textMuted,fontFamily:"'Inter',sans-serif"}}>{labels[labels.length-1]}</span>
       </div>}
     </div>
   );
