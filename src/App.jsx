@@ -690,9 +690,9 @@ function StatsTab({workouts,bodyLogs}){
   const bikeW=workouts.filter(w=>w.type==="bike");
   const allExNames=[...new Set(gymW.flatMap(w=>w.exercises?.map(e=>e.name)||[]))];
   const selEx=ex||allExNames[0]||"";
-  const exData=gymW.filter(w=>w.exercises?.some(e=>e.name===selEx)).map(w=>{const sets=w.exercises.find(e=>e.name===selEx).sets;const best=Math.max(...sets.map(s=>parseFloat(s.kg)||0));return{date:w.date,val:best};}).filter(d=>d.val>0).slice(-12);
-  const runData=runW.filter(w=>w.km&&w.mins).map(w=>({date:w.date,val:parseFloat(w.mins)/parseFloat(w.km)})).slice(-12);
-  const bikeData=bikeW.filter(w=>w.km&&w.mins).map(w=>({date:w.date,val:parseFloat(w.km)/parseFloat(w.mins)*60})).slice(-12);
+  const exData=gymW.filter(w=>w.exercises?.some(e=>e.name===selEx)).map(w=>{const sets=w.exercises.find(e=>e.name===selEx).sets;const best=Math.max(...sets.map(s=>parseFloat(s.kg)||0));return{date:w.date,val:best};}).filter(d=>d.val>0).slice(-12).reverse();
+  const runData=runW.filter(w=>w.km&&w.mins).map(w=>({date:w.date,val:parseFloat(w.mins)/parseFloat(w.km)})).slice(-12).reverse();
+  const bikeData=bikeW.filter(w=>w.km&&w.mins).map(w=>({date:w.date,val:parseFloat(w.km)/parseFloat(w.mins)*60})).slice(-12).reverse();
   const bodyData=bodyLogs.slice(-12).map(l=>({date:l.date,val:bodyMetric==="weight"?l.weight:bodyMetric==="fat"?l.fat:l.muscle})).filter(d=>d.val);
   const pr=exData.length?Math.max(...exData.map(d=>d.val)):null;
   return(
