@@ -518,6 +518,7 @@ function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange}){
   const [modal,setModal]=useState(false);
   const [notes,setNotes]=useState("");
   const [secs,setSecs]=useState(0);
+  const [startTime,setStartTime]=useState(null); // aloitusaika ms
   const [km,setKm]=useState("");const [mins,setMins]=useState("");
   const [mobData,setMobData]=useState(["Lonkan avaus","Rintarangan kierto","Hartiat","Takareidet","Pohjelihas","Selkä","Niska"].map(n=>({name:n,secs:""})));
   const [search,setSearch]=useState("");
@@ -526,7 +527,14 @@ function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange}){
   useEffect(()=>{
     if(phase==="log"){
       saved.current=false;
-      timer.current=setInterval(()=>setSecs(s=>s+1),1000);
+      // Tallennetaan aloitusaika — näin ajastin toimii myös taustalla
+      const t0=Date.now();
+      setStartTime(t0);
+      setSecs(0);
+      // Päivitetään näyttö sekunnin välein laskemalla ero aloitusajasta
+      timer.current=setInterval(()=>{
+        setSecs(Math.floor((Date.now()-t0)/1000));
+      },1000);
       onActiveChange?.(true);
     } else {
       onActiveChange?.(phase!=="select"&&phase!=="done"?true:false);
@@ -534,7 +542,17 @@ function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange}){
     return()=>clearInterval(timer.current);
   },[phase]);
 
-  const addEx=name=>{setExs(e=>[...e,{id:uid(),name,sets:[{kg:"",reps:"",rpe:"",fail:false}]}]);setModal(false);setSearch("");};
+  // Päivitä ajastin heti kun käyttäjä palaa sovellukseen
+  useEffect(()=>{
+    if(phase!=="log"||!startTime)return;
+    const onVisible=()=>{
+      if(document.visibilityState==="visible"){
+        setSecs(Math.floor((Date.now()-startTime)/1000));
+      }
+    };
+    document.addEventListener("visibilitychange",onVisible);
+    return()=>document.removeEventListener("visibilitychange",onVisible);
+  },[phase,startTime]);
   const loadRoutine=r=>{
     const names=r.exercises.map(eid=>exercises.find(e=>e.id===eid)?.name).filter(Boolean);
     setExs(names.map(n=>({id:uid(),name:n,sets:[{kg:"",reps:"",rpe:"",fail:false}]})));
