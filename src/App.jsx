@@ -561,6 +561,11 @@ function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange}){
     setWName(r.name);setModal(false);
   };
   const addSet=ei=>setExs(e=>e.map((x,i)=>i===ei?{...x,sets:[...x.sets,{kg:"",reps:"",rpe:"",fail:false}]}:x));
+  const addSetSameWeight=ei=>setExs(e=>e.map((x,i)=>{
+    if(i!==ei)return x;
+    const prevKg=x.sets.length>0?x.sets[x.sets.length-1].kg:"";
+    return{...x,sets:[...x.sets,{kg:prevKg,reps:"",rpe:"",fail:false}]};
+  }));
   const upd=(ei,si,f,v)=>setExs(e=>e.map((x,i)=>i===ei?{...x,sets:x.sets.map((s,j)=>j===si?{...s,[f]:v}:s)}:x));
   const toggleFail=(ei,si)=>setExs(e=>e.map((x,i)=>i===ei?{...x,sets:x.sets.map((s,j)=>j===si?{...s,fail:!s.fail}:s)}:x));
   const pace=()=>{if(!km||!mins)return"--:--";const p=parseFloat(mins)/parseFloat(km);const m=Math.floor(p),s=Math.round((p-m)*60);return`${m}:${String(s).padStart(2,"0")}`;};
@@ -644,7 +649,10 @@ function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange}){
                   <button className={`fail-btn${s.fail?" on":""}`} onClick={()=>toggleFail(ei,si)}>{s.fail?"✓":"FAIL"}</button>
                 </div>
               ))}
-              <button className="add-set" onClick={()=>addSet(ei)}>+ Lisää sarja</button>
+              <div style={{display:"flex",gap:6,marginTop:6}}>
+                <button className="add-set" style={{flex:1}} onClick={()=>addSetSameWeight(ei)}>+ Sama paino</button>
+                <button className="add-set" style={{flex:1}} onClick={()=>addSet(ei)}>+ Tyhjä sarja</button>
+              </div>
             </div>
           );
         })}
