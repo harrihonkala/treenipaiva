@@ -553,6 +553,8 @@ function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange}){
     document.addEventListener("visibilitychange",onVisible);
     return()=>document.removeEventListener("visibilitychange",onVisible);
   },[phase,startTime]);
+
+  const addEx=name=>{setExs(e=>[...e,{id:uid(),name,sets:[{kg:"",reps:"",rpe:"",fail:false}]}]);setModal(false);setSearch("");};
   const loadRoutine=r=>{
     const names=r.exercises.map(eid=>exercises.find(e=>e.id===eid)?.name).filter(Boolean);
     setExs(names.map(n=>({id:uid(),name:n,sets:[{kg:"",reps:"",rpe:"",fail:false}]})));
