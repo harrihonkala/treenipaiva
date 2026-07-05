@@ -410,83 +410,95 @@ function LockScreen({onUnlock,noWrap}){
   return <div className="lock-wrap">{inner}</div>;
 }
 
-function HomeTab({workouts,onStart}){
+function HomeTab({workouts,onOpenWorkout}){
   const now=new Date();
-  const thisMonth=workouts.filter(w=>{const d=new Date(w.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
-  const lastMonth=workouts.filter(w=>{const d=new Date(w.date);const lm=new Date(now.getFullYear(),now.getMonth()-1,1);return d.getMonth()===lm.getMonth()&&d.getFullYear()===lm.getFullYear();});
+  const yr=now.getFullYear();
+  const mo=now.getMonth();
+  const thisMonth=workouts.filter(w=>{const d=new Date(w.date);return d.getMonth()===mo&&d.getFullYear()===yr;});
+  const lastMonth=workouts.filter(w=>{const d=new Date(w.date);const lm=new Date(yr,mo-1,1);return d.getMonth()===lm.getMonth()&&d.getFullYear()===lm.getFullYear();});
   const weekStart=new Date(now);weekStart.setDate(now.getDate()-((now.getDay()+6)%7));
   const lastWeekStart=new Date(weekStart);lastWeekStart.setDate(weekStart.getDate()-7);
-  const week=DAYS.map((_,i)=>{const d=new Date(weekStart);d.setDate(weekStart.getDate()+i);return workouts.some(w=>new Date(w.date).toDateString()===d.toDateString());});
-  const todayIdx=(now.getDay()+6)%7;
   let streak=0;const chk=new Date(now);
   while(workouts.some(w=>new Date(w.date).toDateString()===chk.toDateString())){streak++;chk.setDate(chk.getDate()-1);}
   const last=workouts[0];
   const thisWeekW=workouts.filter(w=>new Date(w.date)>=weekStart);
   const lastWeekW=workouts.filter(w=>{const d=new Date(w.date);return d>=lastWeekStart&&d<weekStart;});
-  const weekCount=week.filter(Boolean).length;
-  const lastWeekCount=lastWeekW.length;
+  const weekCount=thisWeekW.length;
   const weekMin=Math.round(thisWeekW.reduce((a,w)=>a+(w.duration||0),0)/60);
+  const monthMin=Math.round(thisMonth.reduce((a,w)=>a+(w.duration||0),0)/60);
+  const lastWeekCount=lastWeekW.length;
   const lastWeekMin=Math.round(lastWeekW.reduce((a,w)=>a+(w.duration||0),0)/60);
   const countDiff=weekCount-lastWeekCount;
   const minDiff=weekMin-lastWeekMin;
 
+  // Month calendar data
+  const daysInMonth=new Date(yr,mo+1,0).getDate();
+  const firstDay=(()=>{const d=new Date(yr,mo,1).getDay();return d===0?6:d-1;})();
+  const trainedDays=new Set(thisMonth.map(w=>new Date(w.date).getDate()));
+  const todayDate=now.getDate();
+
   return(
     <div>
-      {/* Month card */}
+      {/* Month stats + streak */}
       <div className="streak-wrap">
         <div className="streak-top">
           <div>
             <div className="streak-num">{thisMonth.length}</div>
             <div className="streak-lbl">treeniä tässä kuussa</div>
-            <div className="streak-sub">Edellinen kuukausi: {lastMonth.length} treeniä</div>
+            <div className="streak-sub">{monthMin} min · edellinen kk: {lastMonth.length} treeniä</div>
           </div>
           <div style={{textAlign:"right"}}>
             <IcoFlame size={32} color="#FF9F0A"/>
             <div style={{fontSize:12,color:C.primary,marginTop:4,fontWeight:700,fontFamily:"'Inter',sans-serif"}}>{streak} pv putki</div>
           </div>
         </div>
-        <div className="week-row">
-          {DAYS.map((d,i)=>(
-            <div key={i} className="wd">
-              <div className="wd-label" style={i===todayIdx?{color:C.primary,fontWeight:700}:{}}>{d}</div>
-              <div className={`wd-dot${week[i]?" on":i===todayIdx?" cur":""}`}/>
-            </div>
-          ))}
+        {/* Month calendar */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginTop:4}}>
+          {DAYS.map(d=><div key={d} style={{textAlign:"center",fontSize:9,color:C.textMuted,fontWeight:700,padding:"2px 0"}}>{d}</div>)}
+          {Array(firstDay).fill(null).map((_,i)=><div key={`e${i}`}/>)}
+          {Array(daysInMonth).fill(null).map((_,i)=>{
+            const d=i+1;
+            const trained=trainedDays.has(d);
+            const isToday=d===todayDate;
+            return(
+              <div key={d} style={{
+                aspectRatio:"1",borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",
+                fontSize:10,fontWeight:trained||isToday?700:400,
+                background:trained?C.primary:isToday?C.primaryDim:"none",
+                color:trained?"#000":isToday?C.primary:C.textMuted,
+                outline:isToday&&!trained?`1.5px solid ${C.primary}`:"none",
+              }}>{trained&&!isToday?"▪":d}</div>
+            );
+          })}
         </div>
       </div>
 
-      {/* CTA */}
-      <button className="cta" onClick={onStart}>
-        <IcoPlus size={18} color="#000"/> Aloita treeni <IcoChevronRight size={16} color="#000"/>
-      </button>
-
-      {/* Last workout */}
+      {/* Last workout - compact link */}
       <div className="sec">Viimeisin treeni</div>
       {last?(
-        <div className="card">
-          <div className="lw-type"><TypeIcon type={last.type} size={13} color={C.primary}/> {typeName(last.type)} · {fmtDate(last.date)}</div>
-          <div className="lw-name">{last.name||typeName(last.type)}</div>
-          {last.exercises&&<div className="lw-ex">{last.exercises.slice(0,3).map(e=>e.name).join(" · ")}{last.exercises.length>3?" · ...":""}</div>}
-          <div className="stats-row">
-            <div className="stat-box"><div className="stat-v">{last.exercises?.length||"-"}</div><div className="stat-l">liikettä</div></div>
-            <div className="stat-box"><div className="stat-v">{last.exercises?.reduce((a,e)=>a+e.sets.length,0)||"-"}</div><div className="stat-l">sarjaa</div></div>
-            <div className="stat-box"><div className="stat-v">{fmtTime(last.duration||0)}</div><div className="stat-l">kesto</div></div>
+        <div className="card" style={{cursor:"pointer",display:"flex",alignItems:"center",gap:14,padding:"14px 16px"}} onClick={()=>onOpenWorkout(last)}>
+          <div style={{width:42,height:42,borderRadius:12,background:C.primaryDim,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <TypeIcon type={last.type} size={20} color={C.primary}/>
           </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontFamily:"'Poppins',sans-serif",fontSize:14,fontWeight:600,marginBottom:2}}>{last.name||typeName(last.type)}</div>
+            <div style={{fontSize:11,color:C.textSub}}>{fmtDate(last.date)} · {fmtTime(last.duration||0)}{last.exercises?` · ${last.exercises.length} liikettä`:""}</div>
+          </div>
+          <IcoChevronRight size={18} color={C.textMuted}/>
         </div>
       ):(
-        <div className="card" style={{display:"flex",alignItems:"center",gap:16,padding:"20px 18px"}}>
-          <div style={{width:52,height:52,borderRadius:14,background:C.primaryDim,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-            <IcoDumbbell size={26} color={C.primary}/>
+        <div className="card" style={{display:"flex",alignItems:"center",gap:14,padding:"16px"}}>
+          <div style={{width:42,height:42,borderRadius:12,background:C.primaryDim,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <IcoDumbbell size={22} color={C.primary}/>
           </div>
           <div style={{flex:1}}>
-            <div style={{fontFamily:"'Poppins',sans-serif",fontSize:14,fontWeight:600,marginBottom:4}}>Ei vielä treenejä</div>
-            <div style={{fontSize:12,color:C.textSub,marginBottom:10,lineHeight:1.4}}>Aloita ensimmäinen treeni ja aloita matkasi kohti tavoitteita!</div>
-            <button onClick={onStart} style={{background:"none",border:`1px solid ${C.primary}`,borderRadius:20,padding:"5px 14px",color:C.primary,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>Aloita treeni</button>
+            <div style={{fontFamily:"'Poppins',sans-serif",fontSize:13,fontWeight:600,marginBottom:2}}>Ei vielä treenejä</div>
+            <div style={{fontSize:11,color:C.textSub}}>Paina + aloittaaksesi ensimmäisen treenin</div>
           </div>
         </div>
       )}
 
-      {/* This week */}
+      {/* Week + month stats */}
       <div className="sec">Tällä viikolla</div>
       <div className="two-col">
         <div className="big-stat">
@@ -506,11 +518,26 @@ function HomeTab({workouts,onStart}){
           </div>
         </div>
       </div>
+      <div className="sec">Tässä kuussa</div>
+      <div className="two-col">
+        <div className="big-stat">
+          <div className="bs-icon primary"><IcoCalendar size={18} color={C.primary}/></div>
+          <div className="bs-val">{thisMonth.length}</div>
+          <div className="bs-lbl">treeniä</div>
+          <div className="bs-diff neu">ed. kk: {lastMonth.length}</div>
+        </div>
+        <div className="big-stat">
+          <div className="bs-icon secondary"><IcoTrendUp size={18} color={C.secondary}/></div>
+          <div className="bs-val">{monthMin}</div>
+          <div className="bs-lbl">min yhteensä</div>
+          <div className="bs-diff neu">ed. kk: {Math.round(lastMonth.reduce((a,w)=>a+(w.duration||0),0)/60)} min</div>
+        </div>
+      </div>
     </div>
   );
 }
 
-function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange}){
+function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange,onGoHome}){
   const [phase,setPhase]=useState("select");
   const [type,setType]=useState(null);
   const [wName,setWName]=useState("");
@@ -622,7 +649,16 @@ function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange}){
 
   if(phase==="log")return(
     <div>
-      <div className="timer-bar"><div><div className="timer-lbl">Kesto</div><div className="timer-val">{fmtTime(secs)}</div></div><button className="end-btn" onClick={doSave}>Lopeta</button></div>
+      <div className="timer-bar">
+        <div><div className="timer-lbl">Kesto</div><div className="timer-val">{fmtTime(secs)}</div></div>
+        <div style={{display:"flex",gap:8}}>
+          <button style={{background:"none",border:`1px solid ${C.border}`,color:C.textSub,borderRadius:10,padding:"8px 14px",fontFamily:"'Poppins',sans-serif",fontSize:12,fontWeight:600,cursor:"pointer"}}
+            onClick={()=>{if(window.confirm("Peruutetaanko treeni? Kaikki kirjaukset poistetaan.")){{setPhase("select");setExs([]);setSecs(0);setNotes("");setKm("");setMins("");setWName("");setType(null);onActiveChange?.(false);}}}}>
+            Peruuta
+          </button>
+          <button className="end-btn" onClick={doSave}>Lopeta</button>
+        </div>
+      </div>
       {(type==="gym"||type==="home")&&<>
         <input className="text-inp" style={{width:"100%",marginBottom:12}} placeholder="Treenin nimi (valinnainen)" value={wName} onChange={e=>setWName(e.target.value)}/>
         {exs.map((ex,ei)=>{
@@ -699,13 +735,19 @@ function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange}){
     <div className="done-wrap">
       <div style={{marginBottom:18,display:"flex",justifyContent:"center"}}><IcoCheck size={56} color={C.green}/></div>
       <div className="done-title">Treeni tallennettu!</div>
-      <div className="done-sub">Hienoa työtä!</div>
+      <div className="done-sub">Hienoa työtä 💪</div>
       <div className="stats-row" style={{marginBottom:28}}>
         <div className="stat-box"><div className="stat-v">{fmtTime(secs)}</div><div className="stat-l">kesto</div></div>
         <div className="stat-box"><div className="stat-v">{exs.length||"-"}</div><div className="stat-l">liikettä</div></div>
         <div className="stat-box"><div className="stat-v">{exs.reduce((a,e)=>a+e.sets.length,0)||"-"}</div><div className="stat-l">sarjaa</div></div>
       </div>
-      <button className="cta" onClick={()=>{setPhase("select");setExs([]);setSecs(0);setNotes("");setKm("");setMins("");setWName("");}}>Uusi treeni</button>
+      <button className="cta" onClick={()=>{onGoHome?.();setPhase("select");setExs([]);setSecs(0);setNotes("");setKm("");setMins("");setWName("");}}>
+        Palaa aloitussivulle
+      </button>
+      <button style={{width:"100%",background:"none",border:`1px solid ${C.border}`,borderRadius:14,padding:14,color:C.textSub,fontSize:13,fontFamily:"'Poppins',sans-serif",fontWeight:600,cursor:"pointer",marginTop:8}}
+        onClick={()=>{setPhase("select");setExs([]);setSecs(0);setNotes("");setKm("");setMins("");setWName("");}}>
+        Uusi treeni
+      </button>
     </div>
   );
 }
@@ -1223,8 +1265,8 @@ function ProfileTab({bodyLogs,onSaveBody,exercises,setExercises,routines,setRout
 
 const TABS=[
   {id:"home",lbl:"Koti",Icon:IcoHome},
-  {id:"workout",lbl:"Treeni",Icon:IcoDumbbell},
   {id:"stats",lbl:"Tilastot",Icon:IcoTrendUp},
+  {id:"workout",lbl:null,Icon:IcoPlus}, // keskipainike
   {id:"history",lbl:"Historia",Icon:IcoCalendar},
   {id:"profile",lbl:"Profiili",Icon:IcoUser},
 ];
@@ -1293,26 +1335,41 @@ export default function App(){
           <div className="hdr-date">{new Date().toLocaleDateString("fi-FI",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
         </div>
         <div className="content">
-          {tab==="home"&&<HomeTab workouts={workouts} onStart={()=>setTab("workout")}/>}
+          {tab==="home"&&<HomeTab workouts={workouts} onOpenWorkout={()=>setTab("history")}/>}
           {/* WorkoutTab pysyy aina mountattuna jotta treeni ei keskeydy navigoinnista */}
           <div style={{display:tab==="workout"?"block":"none"}}>
-            <WorkoutTab workouts={workouts} exercises={exercises} routines={routines} onSave={addWorkout} onActiveChange={setWorkoutActive}/>
+            <WorkoutTab workouts={workouts} exercises={exercises} routines={routines} onSave={addWorkout} onActiveChange={setWorkoutActive} onGoHome={()=>setTab("home")}/>
           </div>
           {tab==="stats"&&<StatsTab workouts={workouts} bodyLogs={bodyLogs}/>}
           {tab==="history"&&<HistoryTab workouts={workouts} bodyLogs={bodyLogs} onUpdateWorkout={updateWorkout} onDeleteWorkout={deleteWorkout} onDeleteBody={deleteBody} onUpdateBody={updateBody} exercises={exercises}/>}
           {tab==="profile"&&<ProfileTab bodyLogs={bodyLogs} onSaveBody={addBodyLog} exercises={exercises} setExercises={setExercises} routines={routines} setRoutines={setRoutines} workouts={workouts} onImport={importAll}/>}
         </div>
-        {/* Premium tab bar */}
         <div className="tabbar">
           {TABS.map(t=>{
             const active=tab===t.id;
-            const showDot=t.id==="workout"&&workoutActive&&tab!=="workout";
+            const isCenter=t.id==="workout";
+            const showDot=isCenter&&workoutActive&&!active;
+            if(isCenter)return(
+              <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"none",border:"none",cursor:"pointer",padding:"0 0 4px"}}>
+                <div style={{
+                  width:52,height:52,borderRadius:"50%",
+                  background:active?C.primary:C.primaryGrad,
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  boxShadow:`0 4px 16px rgba(0,201,167,${active?0.5:0.35})`,
+                  transform:"translateY(-10px)",
+                  position:"relative",
+                  transition:"all 0.2s ease",
+                }}>
+                  {showDot&&<div style={{position:"absolute",top:2,right:2,width:10,height:10,borderRadius:"50%",background:C.red,border:`2px solid ${C.surface}`}}/>}
+                  <IcoPlus size={26} color="#000"/>
+                </div>
+              </button>
+            );
             return(
               <button key={t.id} className={`tab${active?" on":""}`} onClick={()=>setTab(t.id)}>
-                <div className="tab-inner" style={{position:"relative"}}>
-                  {showDot&&<div style={{position:"absolute",top:-2,right:-2,width:8,height:8,borderRadius:"50%",background:C.primary,boxShadow:`0 0 6px ${C.primary}`}}/>}
+                <div className="tab-inner">
                   <t.Icon size={24} color={active?C.primary:C.textMuted}/>
-                  <span className="tab-lbl">{t.lbl}</span>
+                  {t.lbl&&<span className="tab-lbl">{t.lbl}</span>}
                 </div>
               </button>
             );
