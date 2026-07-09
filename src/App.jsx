@@ -414,6 +414,9 @@ function HomeTab({workouts,onOpenWorkout}){
   const now=new Date();
   const yr=now.getFullYear();
   const mo=now.getMonth();
+  const [calMo,setCalMo]=useState(mo);
+  const [calYr,setCalYr]=useState(yr);
+
   const thisMonth=workouts.filter(w=>{const d=new Date(w.date);return d.getMonth()===mo&&d.getFullYear()===yr;});
   const lastMonth=workouts.filter(w=>{const d=new Date(w.date);const lm=new Date(yr,mo-1,1);return d.getMonth()===lm.getMonth()&&d.getFullYear()===lm.getFullYear();});
   const weekStart=new Date(now);weekStart.setDate(now.getDate()-((now.getDay()+6)%7));
@@ -431,11 +434,20 @@ function HomeTab({workouts,onOpenWorkout}){
   const countDiff=weekCount-lastWeekCount;
   const minDiff=weekMin-lastWeekMin;
 
-  // Month calendar data
-  const daysInMonth=new Date(yr,mo+1,0).getDate();
-  const firstDay=(()=>{const d=new Date(yr,mo,1).getDay();return d===0?6:d-1;})();
-  const trainedDays=new Set(thisMonth.map(w=>new Date(w.date).getDate()));
-  const todayDate=now.getDate();
+  // Calendar navigation
+  const isCurrentMonth=calMo===mo&&calYr===yr;
+  const calMonthWorkouts=workouts.filter(w=>{const d=new Date(w.date);return d.getMonth()===calMo&&d.getFullYear()===calYr;});
+  const daysInMonth=new Date(calYr,calMo+1,0).getDate();
+  const firstDay=(()=>{const d=new Date(calYr,calMo,1).getDay();return d===0?6:d-1;})();
+  const trainedDays=new Set(calMonthWorkouts.map(w=>new Date(w.date).getDate()));
+  const todayDate=isCurrentMonth?now.getDate():null;
+
+  const prevMonth=()=>{if(calMo===0){setCalMo(11);setCalYr(y=>y-1);}else setCalMo(m=>m-1);};
+  const nextMonth=()=>{
+    // ei voi mennä tulevaisuuteen
+    if(calYr===yr&&calMo===mo)return;
+    if(calMo===11){setCalMo(0);setCalYr(y=>y+1);}else setCalMo(m=>m+1);
+  };
 
   return(
     <div>
@@ -452,8 +464,18 @@ function HomeTab({workouts,onOpenWorkout}){
             <div style={{fontSize:12,color:C.primary,marginTop:4,fontWeight:700,fontFamily:"'Inter',sans-serif"}}>{streak} pv putki</div>
           </div>
         </div>
-        {/* Month calendar */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginTop:4}}>
+
+        {/* Navigoitava kalenteri */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <button onClick={prevMonth} style={{background:"none",border:"none",color:C.textSub,cursor:"pointer",padding:"4px 8px",fontSize:18,lineHeight:1}}>‹</button>
+          <div style={{fontSize:12,fontWeight:700,color:C.text,fontFamily:"'Poppins',sans-serif"}}>
+            {MONTHS[calMo]} {calYr}
+            {!isCurrentMonth&&<span style={{fontSize:10,color:C.textMuted,fontWeight:400,marginLeft:6}}>({calMonthWorkouts.length} treeniä)</span>}
+          </div>
+          <button onClick={nextMonth} style={{background:"none",border:"none",color:isCurrentMonth?C.textMuted:C.textSub,cursor:isCurrentMonth?"default":"pointer",padding:"4px 8px",fontSize:18,lineHeight:1,opacity:isCurrentMonth?0.3:1}}>›</button>
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3}}>
           {DAYS.map(d=><div key={d} style={{textAlign:"center",fontSize:9,color:C.textMuted,fontWeight:700,padding:"2px 0"}}>{d}</div>)}
           {Array(firstDay).fill(null).map((_,i)=><div key={`e${i}`}/>)}
           {Array(daysInMonth).fill(null).map((_,i)=>{
