@@ -537,7 +537,7 @@ function HomeTab({workouts,onOpenWorkout}){
   );
 }
 
-function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange,onGoHome}){
+function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange,onGoHome,onSaveBody}){
   const [phase,setPhase]=useState("select");
   const [type,setType]=useState(null);
   const [wName,setWName]=useState("");
@@ -549,6 +549,10 @@ function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange,onGoHome}
   const [km,setKm]=useState("");const [mins,setMins]=useState("");
   const [mobData,setMobData]=useState(["Lonkan avaus","Rintarangan kierto","Hartiat","Takareidet","Pohjelihas","Selkä","Niska"].map(n=>({name:n,secs:""})));
   const [search,setSearch]=useState("");
+  const [bodyW,setBodyW]=useState("");
+  const [bodyM,setBodyM]=useState("");
+  const [bodyF,setBodyF]=useState("");
+  const [bodySaved,setBodySaved]=useState(false);
   const timer=useRef(null);const saved=useRef(false);
 
   useEffect(()=>{
@@ -644,6 +648,36 @@ function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange,onGoHome}
         <div style={{fontSize:11,color:C.textMuted,marginBottom:8,marginTop:4}}>Tai aloita tyhjältä pohjalta →</div>
       </>}
       {type&&<button className="cta" onClick={()=>setPhase("log")}>Aloita →</button>}
+
+      {/* Kehon mittaus */}
+      <div className="sec">Kehon mittaukset</div>
+      <div className="card">
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+          <IcoScale size={18} color={C.primary}/>
+          <div style={{fontFamily:"'Poppins',sans-serif",fontSize:14,fontWeight:600}}>Kirjaa tämän päivän mittaukset</div>
+        </div>
+        <div className="body-grid" style={{marginBottom:12}}>
+          {[["Paino",bodyW,setBodyW,"kg"],["Lihas",bodyM,setBodyM,"%"],["Rasva",bodyF,setBodyF,"%"]].map(([lbl,val,set,unit])=>(
+            <div key={lbl} className="body-box">
+              <div className="body-lbl">{lbl}</div>
+              <input className="body-inp" type="number" placeholder="—" value={val} onChange={e=>{set(e.target.value);setBodySaved(false);}}/>
+              <div className="body-unit">{unit}</div>
+            </div>
+          ))}
+        </div>
+        {bodySaved?(
+          <div style={{display:"flex",alignItems:"center",gap:6,justifyContent:"center",padding:"10px",color:C.green,fontSize:13,fontWeight:600}}>
+            <IcoCheck size={16} color={C.green}/> Tallennettu!
+          </div>
+        ):(
+          <button className="body-save" onClick={()=>{
+            if(!bodyW&&!bodyM&&!bodyF)return;
+            onSaveBody({date:new Date().toISOString(),weight:bodyW?parseFloat(bodyW):undefined,fat:bodyF?parseFloat(bodyF):undefined,muscle:bodyM?parseFloat(bodyM):undefined});
+            setBodyW("");setBodyM("");setBodyF("");setBodySaved(true);
+            setTimeout(()=>setBodySaved(false),3000);
+          }}>Tallenna mittaukset</button>
+        )}
+      </div>
     </div>
   );
 
@@ -1086,7 +1120,7 @@ function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteB
       )))}
       {tab==="exercises"&&<ExercisesHistory gymW={gymW} allExNames={allExNames} onOpenWorkout={w=>{openView(w);setTab("workouts");}}/>}
       {tab==="body"&&(bodyLogs.length===0?(
-        <div className="empty-state"><div style={{opacity:0.6,marginBottom:12}}><IcoScale size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä mittauksia.</div><div className="empty-sub">Lisää mittaukset Profiili-välilehdellä.</div></div>
+        <div className="empty-state"><div style={{opacity:0.6,marginBottom:12}}><IcoScale size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä mittauksia.</div><div className="empty-sub">Lisää mittaukset +-painikkeesta.</div></div>
       ):[...bodyLogs].reverse().map((l,i)=>{
         const realIdx=bodyLogs.length-1-i;
         return(
@@ -1115,8 +1149,7 @@ function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteB
   );
 }
 
-function ProfileTab({bodyLogs,onSaveBody,exercises,setExercises,routines,setRoutines,workouts,onImport}){
-  const [w,setW]=useState("");const [m,setM]=useState("");const [f,setF]=useState("");
+function ProfileTab({bodyLogs,exercises,setExercises,routines,setRoutines,workouts,onImport}){
   const [view,setView]=useState("profile");
   const [newEx,setNewEx]=useState("");const [newExCat,setNewExCat]=useState("Muu");
   const [newRname,setNewRname]=useState("");const [newRexs,setNewRexs]=useState([]);
@@ -1124,12 +1157,6 @@ function ProfileTab({bodyLogs,onSaveBody,exercises,setExercises,routines,setRout
   const [importMsg,setImportMsg]=useState("");
   const CATS=["Rinta","Selkä","Jalat","Hartiat","Hauis","Ojentaja","Vatsa","Muu"];
 
-  const saveBody=()=>{
-    if(!w&&!m&&!f)return;
-    onSaveBody({date:new Date().toISOString(),weight:w?parseFloat(w):undefined,fat:f?parseFloat(f):undefined,muscle:m?parseFloat(m):undefined});
-    setW("");setM("");setF("");
-    alert("Mittaukset tallennettu!");
-  };
   const addExercise=()=>{if(!newEx.trim())return;setExercises(e=>[...e,{id:uid(),name:newEx.trim(),cat:newExCat}]);setNewEx("");};
   const toggleRoutineEx=id=>setNewRexs(e=>e.includes(id)?e.filter(x=>x!==id):[...e,id]);
   const saveRoutine=()=>{if(!newRname.trim()||newRexs.length===0)return;setRoutines(r=>[...r,{id:uid(),name:newRname.trim(),exercises:newRexs}]);setNewRname("");setNewRexs([]);};
@@ -1175,14 +1202,6 @@ function ProfileTab({bodyLogs,onSaveBody,exercises,setExercises,routines,setRout
           <div className="avatar"><IcoUser size={26} color={C.primary}/></div>
           <div><div className="prof-name">Omatreeni</div><div className="prof-since">Aloitettu {MONTHS[new Date().getMonth()]} {new Date().getFullYear()}</div></div>
         </div>
-        <div className="sec">Kehon mittaukset — tänään</div>
-        <div className="body-grid">
-          {[["Paino",w,setW,"kg"],["Lihas",m,setM,"%"],["Rasva",f,setF,"%"]].map(([lbl,val,set,unit])=>(
-            <div key={lbl} className="body-box"><div className="body-lbl">{lbl}</div><input className="body-inp" placeholder="—" value={val} onChange={e=>set(e.target.value)}/><div className="body-unit">{unit}</div></div>
-          ))}
-        </div>
-        <button className="body-save" onClick={saveBody}>Tallenna mittaukset</button>
-        {bodyLogs.length===0&&<div className="empty-state"><div style={{opacity:0.6,marginBottom:12}}><IcoScale size={32} color={C.textMuted}/></div><div className="empty-txt">Ei vielä mittauksia.</div></div>}
 
         <div className="sec">Varmuuskopiointi</div>
         <div className="card" style={{marginBottom:10}}>
@@ -1338,11 +1357,11 @@ export default function App(){
           {tab==="home"&&<HomeTab workouts={workouts} onOpenWorkout={()=>setTab("history")}/>}
           {/* WorkoutTab pysyy aina mountattuna jotta treeni ei keskeydy navigoinnista */}
           <div style={{display:tab==="workout"?"block":"none"}}>
-            <WorkoutTab workouts={workouts} exercises={exercises} routines={routines} onSave={addWorkout} onActiveChange={setWorkoutActive} onGoHome={()=>setTab("home")}/>
+            <WorkoutTab workouts={workouts} exercises={exercises} routines={routines} onSave={addWorkout} onActiveChange={setWorkoutActive} onGoHome={()=>setTab("home")} onSaveBody={addBodyLog}/>
           </div>
           {tab==="stats"&&<StatsTab workouts={workouts} bodyLogs={bodyLogs}/>}
           {tab==="history"&&<HistoryTab workouts={workouts} bodyLogs={bodyLogs} onUpdateWorkout={updateWorkout} onDeleteWorkout={deleteWorkout} onDeleteBody={deleteBody} onUpdateBody={updateBody} exercises={exercises}/>}
-          {tab==="profile"&&<ProfileTab bodyLogs={bodyLogs} onSaveBody={addBodyLog} exercises={exercises} setExercises={setExercises} routines={routines} setRoutines={setRoutines} workouts={workouts} onImport={importAll}/>}
+          {tab==="profile"&&<ProfileTab bodyLogs={bodyLogs} exercises={exercises} setExercises={setExercises} routines={routines} setRoutines={setRoutines} workouts={workouts} onImport={importAll}/>}
         </div>
         <div className="tabbar">
           {TABS.map(t=>{
