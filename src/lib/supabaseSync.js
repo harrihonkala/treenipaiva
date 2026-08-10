@@ -10,6 +10,10 @@ const SYNC_KEYS = [
 let currentUserId = null;
 let hydrating = false;
 let initialized = false;
+let initPromise = Promise.resolve();
+let cleanupSync = null;
+let syncQueue = Promise.resolve();
+let syncGeneration = 0;
 
 const readLocal = (key) => {
   try {
@@ -29,22 +33,22 @@ const writeLocal = (key, value) => {
   }
 };
 
-const syncKeyToCloud = async (key) => {
-  if (!supabase || !currentUserId || hydrating) return;
+const syncKeyToCloud = async (key, userId = currentUserId) => {
+  if (!supabase || !userId || hydrating) return;
 
   const value = readLocal(key);
   if (value === null) {
     const { error } = await supabase
       .from('user_app_data')
       .delete()
-      .eq('user_id', currentUserId)
+      .eq('user_id', userId)
       .eq('data_key', key);
     if (error) console.warn('[Supabase] Data sync delete failed:', error.message);
     return;
   }
 
   const { error } = await supabase.from('user_app_data').upsert({
-    user_id: currentUserId,
+    user_id: userId,
     data_key: key,
     data: value,
     updated_at: new Date().toISOString(),
@@ -53,16 +57,39 @@ const syncKeyToCloud = async (key) => {
   if (error) console.warn('[Supabase] Data sync write failed:', error.message);
 };
 
-const uploadLocalData = async () => {
-  for (const key of SYNC_KEYS) await syncKeyToCloud(key);
+const queueSync = (key) => {
+  if (!supabase || !currentUserId || hydrating) return;
+  const userId = currentUserId;
+  syncQueue = syncQueue
+    .then(() => {
+      if (userId !== currentUserId) return;
+      return syncKeyToCloud(key, userId);
+    })
+    .catch((error) => {
+      console.warn('[Supabase] Data sync queue failed:', error?.message || error);
+    });
+};
+
+const uploadMissingLocalData = async (rows) => {
+  const existingKeys = new Set(rows.map((row) => row.data_key));
+  for (const key of SYNC_KEYS) {
+    if (!existingKeys.has(key) && readLocal(key) !== null) {
+      await syncKeyToCloud(key);
+    }
+  }
 };
 
 const hydrateFromCloud = async (rows) => {
   hydrating = true;
   try {
+    const cloudKeys = new Set(rows.map((row) => row.data_key));
     for (const key of SYNC_KEYS) {
       const row = rows.find((item) => item.data_key === key);
-      writeLocal(key, row ? row.data : null);
+      if (row) writeLocal(key, row.data);
+      else if (cloudKeys.size > 0) {
+        // Do not destroy local data when the cloud has only a partial dataset.
+        // Missing keys are migrated separately after hydration.
+      }
     }
   } finally {
     hydrating = false;
@@ -70,8 +97,10 @@ const hydrateFromCloud = async (rows) => {
 };
 
 const initializeForUser = async (userId) => {
-  if (!supabase || !userId || (initialized && currentUserId === userId)) return;
+  if (!supabase || !userId) return;
+  if (initialized && currentUserId === userId) return;
 
+  const generation = ++syncGeneration;
   currentUserId = userId;
   initialized = true;
 
@@ -80,6 +109,8 @@ const initializeForUser = async (userId) => {
     .select('data_key,data,updated_at')
     .eq('user_id', userId);
 
+  if (generation !== syncGeneration || userId !== currentUserId) return;
+
   if (error) {
     console.warn('[Supabase] Data sync read failed:', error.message);
     return;
@@ -87,20 +118,26 @@ const initializeForUser = async (userId) => {
 
   if (!rows?.length) {
     // First login: preserve the existing localStorage data by migrating it to Supabase.
-    await uploadLocalData();
+    await uploadMissingLocalData([]);
   } else {
-    // Existing cloud data is authoritative when logging in on a new device.
+    // Existing cloud rows are authoritative for those keys on login/new device.
     await hydrateFromCloud(rows);
+    // If the cloud has a partial dataset, migrate only missing local keys.
+    await uploadMissingLocalData(rows);
   }
 };
 
 const clearUser = () => {
   currentUserId = null;
   initialized = false;
+  syncGeneration += 1;
 };
+
+export const waitForSupabaseSync = () => initPromise;
 
 export const initSupabaseSync = () => {
   if (!supabase || typeof window === 'undefined') return () => {};
+  if (cleanupSync) return cleanupSync;
 
   const originalSetItem = Storage.prototype.setItem;
   const originalRemoveItem = Storage.prototype.removeItem;
@@ -108,32 +145,40 @@ export const initSupabaseSync = () => {
   Storage.prototype.setItem = function(key, value) {
     originalSetItem.call(this, key, value);
     if (this === localStorage && SYNC_KEYS.includes(key)) {
-      queueMicrotask(() => syncKeyToCloud(key));
+      queueMicrotask(() => queueSync(key));
     }
   };
 
   Storage.prototype.removeItem = function(key) {
     originalRemoveItem.call(this, key);
     if (this === localStorage && SYNC_KEYS.includes(key)) {
-      queueMicrotask(() => syncKeyToCloud(key));
+      queueMicrotask(() => queueSync(key));
     }
   };
 
   let active = true;
-  supabase.auth.getSession().then(({ data }) => {
-    if (active && data.session?.user?.id) initializeForUser(data.session.user.id);
+  initPromise = supabase.auth.getSession().then(({ data }) => {
+    if (active && data.session?.user?.id) return initializeForUser(data.session.user.id);
+    return undefined;
   });
 
   const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
     if (!active) return;
-    if (session?.user?.id) initializeForUser(session.user.id);
-    else clearUser();
+    if (session?.user?.id) {
+      initPromise = initializeForUser(session.user.id);
+    } else {
+      clearUser();
+      initPromise = Promise.resolve();
+    }
   });
 
-  return () => {
+  cleanupSync = () => {
     active = false;
     listener.subscription.unsubscribe();
     Storage.prototype.setItem = originalSetItem;
     Storage.prototype.removeItem = originalRemoveItem;
+    cleanupSync = null;
   };
+
+  return cleanupSync;
 };
