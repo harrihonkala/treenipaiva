@@ -82,14 +82,11 @@ const uploadMissingLocalData = async (rows) => {
 const hydrateFromCloud = async (rows) => {
   hydrating = true;
   try {
-    const cloudKeys = new Set(rows.map((row) => row.data_key));
     for (const key of SYNC_KEYS) {
       const row = rows.find((item) => item.data_key === key);
       if (row) writeLocal(key, row.data);
-      else if (cloudKeys.size > 0) {
-        // Do not destroy local data when the cloud has only a partial dataset.
-        // Missing keys are migrated separately after hydration.
-      }
+      // Missing cloud keys are intentionally left untouched. They are migrated
+      // after hydration so partial cloud datasets never erase local data.
     }
   } finally {
     hydrating = false;
@@ -102,7 +99,7 @@ const initializeForUser = async (userId) => {
 
   const generation = ++syncGeneration;
   currentUserId = userId;
-  initialized = true;
+  initialized = false;
 
   const { data: rows, error } = await supabase
     .from('user_app_data')
@@ -113,6 +110,7 @@ const initializeForUser = async (userId) => {
 
   if (error) {
     console.warn('[Supabase] Data sync read failed:', error.message);
+    // Keep the current localStorage data usable and allow a later retry.
     return;
   }
 
@@ -124,6 +122,10 @@ const initializeForUser = async (userId) => {
     await hydrateFromCloud(rows);
     // If the cloud has a partial dataset, migrate only missing local keys.
     await uploadMissingLocalData(rows);
+  }
+
+  if (generation === syncGeneration && userId === currentUserId) {
+    initialized = true;
   }
 };
 
