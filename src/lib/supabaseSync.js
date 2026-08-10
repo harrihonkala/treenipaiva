@@ -34,20 +34,23 @@ const syncKeyToCloud = async (key) => {
 
   const value = readLocal(key);
   if (value === null) {
-    await supabase
+    const { error } = await supabase
       .from('user_app_data')
       .delete()
       .eq('user_id', currentUserId)
       .eq('data_key', key);
+    if (error) console.warn('[Supabase] Data sync delete failed:', error.message);
     return;
   }
 
-  await supabase.from('user_app_data').upsert({
+  const { error } = await supabase.from('user_app_data').upsert({
     user_id: currentUserId,
     data_key: key,
     data: value,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id,data_key' });
+
+  if (error) console.warn('[Supabase] Data sync write failed:', error.message);
 };
 
 const uploadLocalData = async () => {
@@ -59,7 +62,7 @@ const hydrateFromCloud = async (rows) => {
   try {
     for (const key of SYNC_KEYS) {
       const row = rows.find((item) => item.data_key === key);
-      if (row) writeLocal(key, row.data);
+      writeLocal(key, row ? row.data : null);
     }
   } finally {
     hydrating = false;
@@ -67,7 +70,7 @@ const hydrateFromCloud = async (rows) => {
 };
 
 const initializeForUser = async (userId) => {
-  if (!supabase || !userId || initialized && currentUserId === userId) return;
+  if (!supabase || !userId || (initialized && currentUserId === userId)) return;
 
   currentUserId = userId;
   initialized = true;
@@ -105,18 +108,14 @@ export const initSupabaseSync = () => {
   Storage.prototype.setItem = function(key, value) {
     originalSetItem.call(this, key, value);
     if (this === localStorage && SYNC_KEYS.includes(key)) {
-      queueMicrotask(() => syncKeyToCloud(key).catch((error) => {
-        console.warn('[Supabase] Data sync write failed:', error.message);
-      }));
+      queueMicrotask(() => syncKeyToCloud(key));
     }
   };
 
   Storage.prototype.removeItem = function(key) {
     originalRemoveItem.call(this, key);
     if (this === localStorage && SYNC_KEYS.includes(key)) {
-      queueMicrotask(() => syncKeyToCloud(key).catch((error) => {
-        console.warn('[Supabase] Data sync delete failed:', error.message);
-      }));
+      queueMicrotask(() => syncKeyToCloud(key));
     }
   };
 
