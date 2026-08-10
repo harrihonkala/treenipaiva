@@ -33,8 +33,18 @@ const writeLocal = (key, value) => {
   }
 };
 
+const getCloudRows = async (userId) => {
+  const { data, error } = await supabase
+    .from('user_app_data')
+    .select('data_key,data,updated_at')
+    .eq('user_id', userId);
+
+  if (error) throw error;
+  return data || [];
+};
+
 const syncKeyToCloud = async (key, userId = currentUserId) => {
-  if (!supabase || !userId || hydrating) return;
+  if (!supabase || !userId || hydrating) return false;
 
   const value = readLocal(key);
   if (value === null) {
@@ -43,8 +53,11 @@ const syncKeyToCloud = async (key, userId = currentUserId) => {
       .delete()
       .eq('user_id', userId)
       .eq('data_key', key);
-    if (error) console.warn('[Supabase] Data sync delete failed:', error.message);
-    return;
+    if (error) {
+      console.warn('[Supabase] Data sync delete failed:', error.message);
+      return false;
+    }
+    return true;
   }
 
   const { error } = await supabase.from('user_app_data').upsert({
@@ -54,7 +67,12 @@ const syncKeyToCloud = async (key, userId = currentUserId) => {
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id,data_key' });
 
-  if (error) console.warn('[Supabase] Data sync write failed:', error.message);
+  if (error) {
+    console.warn('[Supabase] Data sync write failed:', error.message);
+    return false;
+  }
+
+  return true;
 };
 
 const queueSync = (key) => {
@@ -70,13 +88,20 @@ const queueSync = (key) => {
     });
 };
 
-const uploadMissingLocalData = async (rows) => {
+// Import only keys that do not already exist in Supabase. This prevents an
+// older browser copy from overwriting newer cloud data on another device.
+const uploadMissingLocalData = async (rows, userId = currentUserId) => {
   const existingKeys = new Set(rows.map((row) => row.data_key));
+  const importedKeys = [];
+
   for (const key of SYNC_KEYS) {
     if (!existingKeys.has(key) && readLocal(key) !== null) {
-      await syncKeyToCloud(key);
+      const ok = await syncKeyToCloud(key, userId);
+      if (ok) importedKeys.push(key);
     }
   }
+
+  return importedKeys;
 };
 
 const hydrateFromCloud = async (rows) => {
@@ -85,8 +110,7 @@ const hydrateFromCloud = async (rows) => {
     for (const key of SYNC_KEYS) {
       const row = rows.find((item) => item.data_key === key);
       if (row) writeLocal(key, row.data);
-      // Missing cloud keys are intentionally left untouched. They are migrated
-      // after hydration so partial cloud datasets never erase local data.
+      // Missing cloud keys are intentionally left untouched and migrated below.
     }
   } finally {
     hydrating = false;
@@ -101,31 +125,46 @@ const initializeForUser = async (userId) => {
   currentUserId = userId;
   initialized = false;
 
-  const { data: rows, error } = await supabase
-    .from('user_app_data')
-    .select('data_key,data,updated_at')
-    .eq('user_id', userId);
+  try {
+    let rows = await getCloudRows(userId);
 
-  if (generation !== syncGeneration || userId !== currentUserId) return;
+    if (generation !== syncGeneration || userId !== currentUserId) return;
 
-  if (error) {
-    console.warn('[Supabase] Data sync read failed:', error.message);
-    // Keep the current localStorage data usable and allow a later retry.
-    return;
+    if (rows.length > 0) {
+      // Cloud is authoritative for keys that already exist.
+      await hydrateFromCloud(rows);
+    }
+
+    // First login, or a partially migrated account: import only missing keys.
+    const importedKeys = await uploadMissingLocalData(rows, userId);
+
+    if (importedKeys.length > 0) {
+      // Re-read so the in-memory sync state reflects what was actually stored.
+      rows = await getCloudRows(userId);
+      console.info('[Supabase] Imported local data:', importedKeys.join(', '));
+    }
+
+    if (generation === syncGeneration && userId === currentUserId) {
+      initialized = true;
+    }
+  } catch (error) {
+    console.warn('[Supabase] Initialization failed:', error?.message || error);
+    // Keep localStorage usable and allow a later explicit retry.
+  }
+};
+
+export const syncMissingLocalDataNow = async () => {
+  if (!supabase || !currentUserId) {
+    return { ok: false, importedKeys: [], reason: 'not-authenticated' };
   }
 
-  if (!rows?.length) {
-    // First login: preserve the existing localStorage data by migrating it to Supabase.
-    await uploadMissingLocalData([]);
-  } else {
-    // Existing cloud rows are authoritative for those keys on login/new device.
-    await hydrateFromCloud(rows);
-    // If the cloud has a partial dataset, migrate only missing local keys.
-    await uploadMissingLocalData(rows);
-  }
-
-  if (generation === syncGeneration && userId === currentUserId) {
-    initialized = true;
+  try {
+    const rows = await getCloudRows(currentUserId);
+    const importedKeys = await uploadMissingLocalData(rows, currentUserId);
+    return { ok: true, importedKeys };
+  } catch (error) {
+    console.warn('[Supabase] Manual data import failed:', error?.message || error);
+    return { ok: false, importedKeys: [], reason: error?.message || 'unknown-error' };
   }
 };
 
@@ -160,7 +199,9 @@ export const initSupabaseSync = () => {
 
   let active = true;
   initPromise = supabase.auth.getSession().then(({ data }) => {
-    if (active && data.session?.user?.id) return initializeForUser(data.session.user.id);
+    if (active && data.session?.user?.id) {
+      return initializeForUser(data.session.user.id);
+    }
     return undefined;
   });
 
