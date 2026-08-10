@@ -37,6 +37,12 @@ export default function AuthGate({ children }) {
     return () => { mounted = false; listener.subscription.unsubscribe(); };
   }, []);
 
+  // App.jsx still contains its old local password gate. During this DEV phase
+  // Supabase Auth is the real gate, so mark the old gate as unlocked locally.
+  useEffect(() => {
+    if (session) localStorage.setItem('tp_auth', '1');
+  }, [session]);
+
   const submit = async (event) => {
     event.preventDefault();
     setError(''); setMessage('');
@@ -62,7 +68,10 @@ export default function AuthGate({ children }) {
     } finally { setBusy(false); }
   };
 
-  const logout = async () => { await supabase.auth.signOut(); };
+  const logout = async () => {
+    localStorage.removeItem('tp_auth');
+    await supabase.auth.signOut();
+  };
 
   if (loading) return <div style={styles.page}><div style={{color:'#8E8E9A'}}>Ladataan...</div></div>;
 
