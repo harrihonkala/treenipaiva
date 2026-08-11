@@ -15,8 +15,6 @@ const C = {
 };
 const FONTS=`@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');`;
 
-const APP_PASSWORD="treeni123";
-const AUTH_KEY="tp_auth";
 const WORKOUTS_KEY="tp_workouts";
 const BODY_KEY="tp_body";
 const EXERCISES_KEY="tp_exercises";
@@ -384,32 +382,6 @@ function LineChart({data,color,labels,unit=""}){
   );
 }
 
-function LockScreen({onUnlock,noWrap}){
-  const [pw,setPw]=useState("");const [show,setShow]=useState(false);
-  const [err,setErr]=useState("");const [shake,setShake]=useState(false);
-  const tryUnlock=()=>{
-    if(pw===APP_PASSWORD){localStorage.setItem(AUTH_KEY,"1");onUnlock();}
-    else{setErr("Väärä salasana");setShake(true);setPw("");setTimeout(()=>{setShake(false);setErr("");},1500);}
-  };
-  const inner=(
-    <>
-      {!noWrap&&<div style={{marginBottom:24,opacity:0.7}}><IcoLock size={52} color={C.primary}/></div>}
-      {!noWrap&&<div className="lock-title">Treenipäiväkirja</div>}
-      {!noWrap&&<div className="lock-sub">Syötä salasana jatkaaksesi</div>}
-      <div className="lock-input-wrap">
-        <input className={`lock-input${shake?" err":""}`} type={show?"text":"password"} placeholder="••••••••"
-          value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&tryUnlock()} autoFocus/>
-        <button className="lock-toggle" onClick={()=>setShow(s=>!s)} style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
-          {show?<IcoEye size={16} color={C.textMuted}/>:<IcoEyeOff size={16} color={C.textMuted}/>}
-        </button>
-      </div>
-      <div className="lock-err">{err}</div>
-      <button className="lock-btn" onClick={tryUnlock}>Avaa</button>
-    </>
-  );
-  if(noWrap)return inner;
-  return <div className="lock-wrap">{inner}</div>;
-}
 
 function HomeTab({workouts,onOpenWorkout}){
   const now=new Date();
@@ -1309,7 +1281,7 @@ const TABS=[
 const TITLES={home:"Treenipäiväkirja",workout:"Uusi treeni",stats:"Tilastot",history:"Historia",profile:"Asetukset"};
 
 export default function App(){
-  const [unlocked,setUnlocked]=useState(()=>localStorage.getItem(AUTH_KEY)==="1");
+  const [unlocked,setUnlocked]=useState(true);
   const [tab,setTab]=useState("home");
   const [workoutActive,setWorkoutActive]=useState(false);
   const [workouts,setWorkouts]=useState(()=>load(WORKOUTS_KEY,[]));
@@ -1358,7 +1330,6 @@ export default function App(){
       <div style={{marginBottom:24,opacity:0.7}}><IcoLock size={52} color={C.primary}/></div>
       <div className="lock-title">Treenipäiväkirja</div>
       <div className="lock-sub">Syötä salasana jatkaaksesi</div>
-      <LockScreen onUnlock={()=>setUnlocked(true)} noWrap/>
     </div></>
   );
 
