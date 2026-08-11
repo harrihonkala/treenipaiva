@@ -125,9 +125,26 @@ export default function AuthGate({ children }) {
     </div>
   );
 
-  // Temporary development-only logout control. Move this into Settings later.
+  // Temporary development-only logout control. Keep it below the iOS status bar safe area.
   return <>
     {children}
-    <button type="button" onClick={logout} title={`Kirjaudu ulos (${session.user.email || 'käyttäjä'})`} style={{position:'fixed',top:10,right:10,zIndex:1000,border:'1px solid #2C2C35',borderRadius:9,padding:'6px 9px',background:'rgba(22,22,22,.9)',color:'#8E8E9A',fontSize:10,cursor:'pointer'}}>Ulos</button>
+    <button
+      type="button"
+      onClick={logout}
+      title={`Kirjaudu ulos (${session.user.email || 'käyttäjä'})`}
+      style={{
+        position:'fixed',
+        top:'calc(env(safe-area-inset-top, 0px) + 12px)',
+        right:'max(12px, env(safe-area-inset-right, 0px))',
+        zIndex:1000,
+        border:'1px solid #2C2C35',
+        borderRadius:9,
+        padding:'6px 9px',
+        background:'rgba(22,22,22,.9)',
+        color:'#8E8E9A',
+        fontSize:10,
+        cursor:'pointer'
+      }}
+    >Ulos</button>
   </>;
 }
