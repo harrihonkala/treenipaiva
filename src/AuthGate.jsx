@@ -4,13 +4,13 @@ import { waitForSupabaseSync } from './lib/supabaseSync';
 
 const styles = {
   page: { minHeight:'100vh', background:'#0D0D0D', color:'#F2F2F7', display:'flex', alignItems:'center', justifyContent:'center', padding:20, fontFamily:'Inter, sans-serif' },
-  card: { width:'100%', maxWidth:380, background:'#1E1E24', border:'1px solid #2C2C35', borderRadius:20, padding:24 },
+  card: { width:'100%', maxWidth:380, boxSizing:'border-box', background:'#1E1E24', border:'1px solid #2C2C35', borderRadius:20, padding:24 },
   title: { fontFamily:'Poppins, sans-serif', fontSize:24, fontWeight:700, marginBottom:6 },
   sub: { color:'#8E8E9A', fontSize:13, lineHeight:1.5, marginBottom:22 },
   label: { display:'block', color:'#8E8E9A', fontSize:11, marginBottom:6 },
-  input: { width:'100%', background:'#161616', color:'#F2F2F7', border:'1px solid #2C2C35', borderRadius:12, padding:'13px 14px', fontSize:14, outline:'none', marginBottom:12 },
-  primary: { width:'100%', border:0, borderRadius:12, padding:'14px 16px', background:'linear-gradient(135deg,#00C9A7 0%,#00A896 100%)', color:'#000', fontWeight:700, cursor:'pointer', marginTop:4 },
-  secondary: { width:'100%', border:'1px solid #2C2C35', borderRadius:12, padding:'12px 16px', background:'transparent', color:'#8E8E9A', fontWeight:600, cursor:'pointer', marginTop:10 },
+  input: { width:'100%', boxSizing:'border-box', background:'#161616', color:'#F2F2F7', border:'1px solid #2C2C35', borderRadius:12, padding:'13px 14px', fontSize:14, outline:'none', marginBottom:12 },
+  primary: { width:'100%', boxSizing:'border-box', border:0, borderRadius:12, padding:'14px 16px', background:'linear-gradient(135deg,#00C9A7 0%,#00A896 100%)', color:'#000', fontWeight:700, cursor:'pointer', marginTop:4 },
+  secondary: { width:'100%', boxSizing:'border-box', border:'1px solid #2C2C35', borderRadius:12, padding:'12px 16px', background:'transparent', color:'#8E8E9A', fontWeight:600, cursor:'pointer', marginTop:10 },
   error: { background:'rgba(255,69,58,.1)', border:'1px solid rgba(255,69,58,.25)', color:'#FF8A84', borderRadius:10, padding:10, fontSize:12, marginBottom:12 },
   success: { background:'rgba(0,201,167,.1)', border:'1px solid rgba(0,201,167,.25)', color:'#00C9A7', borderRadius:10, padding:10, fontSize:12, marginBottom:12 },
 };
