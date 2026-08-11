@@ -10,6 +10,15 @@
     <link rel="apple-touch-icon" href="/treenipaiva/icon-192.png" />
     <link rel="manifest" href="/treenipaiva/manifest.json" />
     <title>Treenipäiväkirja</title>
+    <style>
+      /* iPhone safe-area support. The app uses a translucent status bar. */
+      .hdr {
+        padding-top: max(54px, calc(54px + env(safe-area-inset-top)));
+      }
+      .tabbar {
+        padding-bottom: max(28px, calc(28px + env(safe-area-inset-bottom)));
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

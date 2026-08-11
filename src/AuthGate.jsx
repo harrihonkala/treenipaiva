@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
+import { waitForSupabaseSync } from './lib/supabaseSync';
 
 const styles = {
   page: { minHeight:'100vh', background:'#0D0D0D', color:'#F2F2F7', display:'flex', alignItems:'center', justifyContent:'center', padding:20, fontFamily:'Inter, sans-serif' },
@@ -28,12 +29,33 @@ export default function AuthGate({ children }) {
   useEffect(() => {
     if (!supabase) { setLoading(false); return undefined; }
     let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (mounted) { setSession(data.session); setLoading(false); }
+
+    const loadSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!mounted) return;
+
+      if (data.session?.user?.id) {
+        await waitForSupabaseSync();
+        if (!mounted) return;
+      }
+
+      setSession(data.session);
+      setLoading(false);
+    };
+
+    loadSession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+      if (!mounted) return;
+      if (nextSession?.user?.id) {
+        setLoading(true);
+        await waitForSupabaseSync();
+        if (!mounted) return;
+      }
+      setSession(nextSession);
+      setLoading(false);
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (mounted) setSession(nextSession);
-    });
+
     return () => { mounted = false; listener.subscription.unsubscribe(); };
   }, []);
 
