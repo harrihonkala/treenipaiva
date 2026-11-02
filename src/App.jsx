@@ -154,9 +154,11 @@ body{background:${C.bg};color:${C.text};font-family:'Inter',sans-serif;overscrol
 .prev-title{font-size:9px;color:${C.textMuted};letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-bottom:7px;}
 .prev-row{font-size:11px;color:${C.textSub};margin-bottom:4px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
 .prev-date{font-size:9px;color:${C.textMuted};}
-.set-labels{display:grid;grid-template-columns:26px 1fr 1fr 60px 44px 24px;gap:6px;margin-bottom:5px;}
+.set-labels{display:grid;grid-template-columns:26px 1fr 1fr 60px 44px;gap:6px;margin-bottom:5px;}
+.workout-set-labels{display:grid;grid-template-columns:26px 1fr 1fr 60px 44px 24px;gap:6px;margin-bottom:5px;}
 .sl{font-size:9px;color:${C.textMuted};text-align:center;letter-spacing:1px;text-transform:uppercase;font-weight:600;}
-.set-row{display:grid;grid-template-columns:26px 1fr 1fr 60px 44px 24px;gap:6px;align-items:center;margin-bottom:5px;}
+.set-row{display:grid;grid-template-columns:26px 1fr 1fr 60px 44px;gap:6px;align-items:center;margin-bottom:5px;}
+.workout-set-row{display:grid;grid-template-columns:26px 1fr 1fr 60px 44px 24px;gap:6px;align-items:center;margin-bottom:5px;}
 .set-n{font-size:11px;color:${C.textMuted};text-align:center;}
 .inp{background:${C.surface};border:1px solid ${C.border};border-radius:10px;padding:9px 6px;color:${C.text};font-size:14px;text-align:center;width:100%;outline:none;font-family:'Inter',sans-serif;transition:border-color 0.15s;}
 .inp:focus{border-color:${C.primary};}
@@ -707,9 +709,9 @@ function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange,onGoHome,
                   </div>
                 ))}
               </div>}
-              <div className="set-labels"><div className="sl">#</div><div className="sl">kg</div><div className="sl">toistot</div><div className="sl">RPE</div><div className="sl">Fail</div><div className="sl"></div></div>
+              <div className="workout-set-labels"><div className="sl">#</div><div className="sl">kg</div><div className="sl">toistot</div><div className="sl">RPE</div><div className="sl">Fail</div><div className="sl"></div></div>
               {ex.sets.map((s,si)=>(
-                <div key={si} className="set-row">
+                <div key={si} className="workout-set-row">
                   <div className="set-n">{si+1}</div>
                   <input className="inp" type="number" placeholder="—" value={s.kg} onChange={e=>upd(ei,si,"kg",e.target.value)}/>
                   <input className="inp" type="number" placeholder="—" value={s.reps} onChange={e=>upd(ei,si,"reps",e.target.value)}/>
@@ -1000,7 +1002,7 @@ function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteB
         {viewing.exercises.map((ex,ei)=>(
           <div key={ei} className="ex-card">
             <div className="ex-hdr"><div className="ex-name">{ex.name}</div></div>
-            <div className="set-labels"><div className="sl">#</div><div className="sl">kg</div><div className="sl">toistot</div><div className="sl">RPE</div><div className="sl">Fail</div><div className="sl"></div></div>
+            <div className="set-labels"><div className="sl">#</div><div className="sl">kg</div><div className="sl">toistot</div><div className="sl">RPE</div><div className="sl">Fail</div></div>
             {ex.sets.map((s,si)=>(
               <div key={si} className="set-row">
                 <div className="set-n">{si+1}</div>
