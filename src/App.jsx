@@ -154,15 +154,17 @@ body{background:${C.bg};color:${C.text};font-family:'Inter',sans-serif;overscrol
 .prev-title{font-size:9px;color:${C.textMuted};letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-bottom:7px;}
 .prev-row{font-size:11px;color:${C.textSub};margin-bottom:4px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
 .prev-date{font-size:9px;color:${C.textMuted};}
-.set-labels{display:grid;grid-template-columns:26px 1fr 1fr 60px 44px;gap:6px;margin-bottom:5px;}
+.set-labels{display:grid;grid-template-columns:26px 1fr 1fr 60px 44px 24px;gap:6px;margin-bottom:5px;}
 .sl{font-size:9px;color:${C.textMuted};text-align:center;letter-spacing:1px;text-transform:uppercase;font-weight:600;}
-.set-row{display:grid;grid-template-columns:26px 1fr 1fr 60px 44px;gap:6px;align-items:center;margin-bottom:5px;}
+.set-row{display:grid;grid-template-columns:26px 1fr 1fr 60px 44px 24px;gap:6px;align-items:center;margin-bottom:5px;}
 .set-n{font-size:11px;color:${C.textMuted};text-align:center;}
 .inp{background:${C.surface};border:1px solid ${C.border};border-radius:10px;padding:9px 6px;color:${C.text};font-size:14px;text-align:center;width:100%;outline:none;font-family:'Inter',sans-serif;transition:border-color 0.15s;}
 .inp:focus{border-color:${C.primary};}
 .rpe-sel{background:${C.surface};border:1px solid ${C.border};border-radius:10px;padding:9px 4px;color:${C.textSub};font-size:12px;width:100%;outline:none;text-align:center;font-family:'Inter',sans-serif;}
 .fail-btn{background:${C.surface};border:1px solid ${C.border};border-radius:10px;font-size:10px;color:${C.textMuted};cursor:pointer;padding:9px 2px;text-align:center;transition:all 0.15s;font-weight:600;}
 .fail-btn.on{background:rgba(255,69,58,0.12);border-color:${C.red};color:${C.red};}
+.set-del{width:24px;height:36px;display:flex;align-items:center;justify-content:center;background:none;border:none;border-radius:8px;cursor:pointer;padding:0;}
+.set-del:active{background:rgba(255,69,58,0.12);}
 .add-set{width:100%;background:none;border:1px dashed ${C.border};border-radius:10px;padding:10px;color:${C.textMuted};font-size:12px;cursor:pointer;margin-top:6px;font-family:'Inter',sans-serif;}
 .add-ex{width:100%;background:${C.primaryDim};border:1px dashed ${C.primary};border-radius:14px;padding:15px;color:${C.primary};font-size:13px;font-weight:600;cursor:pointer;margin-top:2px;font-family:'Inter',sans-serif;}
 .notes{width:100%;background:${C.card};border:1px solid ${C.border};border-radius:14px;padding:14px;color:${C.text};font-size:13px;resize:none;outline:none;font-family:'Inter',sans-serif;margin-top:4px;line-height:1.5;}
@@ -594,6 +596,7 @@ function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange,onGoHome,
   }));
   const upd=(ei,si,f,v)=>setExs(e=>e.map((x,i)=>i===ei?{...x,sets:x.sets.map((s,j)=>j===si?{...s,[f]:v}:s)}:x));
   const toggleFail=(ei,si)=>setExs(e=>e.map((x,i)=>i===ei?{...x,sets:x.sets.map((s,j)=>j===si?{...s,fail:!s.fail}:s)}:x));
+  const removeSet=(ei,si)=>setExs(e=>e.map((x,i)=>i===ei?{...x,sets:x.sets.filter((_,j)=>j!==si)}:x));
   const pace=()=>{if(!km||!mins)return"--:--";const p=parseFloat(mins)/parseFloat(km);const m=Math.floor(p),s=Math.round((p-m)*60);return`${m}:${String(s).padStart(2,"0")}`;};
   const speed=()=>{if(!km||!mins)return"--";return fmtNum(parseFloat(km)/parseFloat(mins)*60,1);};
   const getPrev=name=>workouts.filter(w=>w.exercises?.some(e=>e.name===name)).slice(0,3).map(w=>({date:w.date,sets:w.exercises.find(e=>e.name===name).sets}));
@@ -704,7 +707,7 @@ function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange,onGoHome,
                   </div>
                 ))}
               </div>}
-              <div className="set-labels"><div className="sl">#</div><div className="sl">kg</div><div className="sl">toistot</div><div className="sl">RPE</div><div className="sl">Fail</div></div>
+              <div className="set-labels"><div className="sl">#</div><div className="sl">kg</div><div className="sl">toistot</div><div className="sl">RPE</div><div className="sl">Fail</div><div className="sl"></div></div>
               {ex.sets.map((s,si)=>(
                 <div key={si} className="set-row">
                   <div className="set-n">{si+1}</div>
@@ -712,6 +715,7 @@ function WorkoutTab({workouts,exercises,routines,onSave,onActiveChange,onGoHome,
                   <input className="inp" type="number" placeholder="—" value={s.reps} onChange={e=>upd(ei,si,"reps",e.target.value)}/>
                   <select className="rpe-sel" value={s.rpe} onChange={e=>upd(ei,si,"rpe",e.target.value)}><option value="">—</option>{[6,7,7.5,8,8.5,9,9.5,10].map(r=><option key={r}>{r}</option>)}</select>
                   <button className={`fail-btn${s.fail?" on":""}`} onClick={()=>toggleFail(ei,si)}>{s.fail?"✓":"FAIL"}</button>
+                  <button type="button" className="set-del" aria-label={`Poista sarja ${si+1}`} title="Poista sarja" onClick={()=>removeSet(ei,si)}><IcoTrash size={14} color={C.textMuted}/></button>
                 </div>
               ))}
               <div style={{display:"flex",gap:6,marginTop:6}}>
@@ -996,7 +1000,7 @@ function HistoryTab({workouts,bodyLogs,onUpdateWorkout,onDeleteWorkout,onDeleteB
         {viewing.exercises.map((ex,ei)=>(
           <div key={ei} className="ex-card">
             <div className="ex-hdr"><div className="ex-name">{ex.name}</div></div>
-            <div className="set-labels"><div className="sl">#</div><div className="sl">kg</div><div className="sl">toistot</div><div className="sl">RPE</div><div className="sl">Fail</div></div>
+            <div className="set-labels"><div className="sl">#</div><div className="sl">kg</div><div className="sl">toistot</div><div className="sl">RPE</div><div className="sl">Fail</div><div className="sl"></div></div>
             {ex.sets.map((s,si)=>(
               <div key={si} className="set-row">
                 <div className="set-n">{si+1}</div>
